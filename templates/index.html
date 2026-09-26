@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Groundwork — Capital Request Intake</title>
+<style>
+:root{
+  --ink:#141F33; --ink-2:#3C4A63; --ink-3:#6B7890;
+  --paper:#EEF1F6; --surface:#FFF; --surface-2:#F7F9FC;
+  --line:#DDE2EC; --line-2:#C9D0DE;
+  --amber:#E8912A; --amber-soft:#FBEED7; --navy-btn:#182741;
+  --go:#1E9E62; --go-soft:#DDF1E6; --caution:#D98A16; --caution-soft:#FBEBCF;
+  --stop:#C6462E; --info:#2C6DBF; --info-soft:#E1ECF9;
+  --r-sm:8px; --r:14px; --r-lg:20px;
+  --shadow:0 1px 2px rgba(20,31,51,.06),0 6px 24px rgba(20,31,51,.07);
+  --shadow-lg:0 12px 40px rgba(20,31,51,.16);
+  --disp:'Space Grotesk',system-ui,sans-serif;
+  --body:'Inter',system-ui,-apple-system,sans-serif;
+  --mono:'SF Mono',ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{font-family:var(--body);color:var(--ink);background:var(--paper);line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px;border-radius:6px}
+.app{min-height:100dvh;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;padding:12px 20px;background:var(--ink);color:#fff}
+.brand{display:flex;align-items:center;gap:11px;font-family:var(--disp);font-weight:700;font-size:17px}
+.brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--amber),#F4B24C);display:grid;place-items:center;color:var(--ink)}
+.brand .mark svg{width:18px;height:18px}
+.brand small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:#9FB0CC;text-transform:uppercase;margin-top:-3px;font-weight:400}
+.topbar .spacer{flex:1}
+.pill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);border:1px solid #3A4B68;padding:3px 8px;border-radius:100px;background:none}
+.pill.live{color:var(--go);border-color:#2E5A48}
+.main{flex:1;width:100%;max-width:880px;margin:0 auto;padding:26px 20px 90px}
+.view{display:none;animation:rise .32s cubic-bezier(.2,.7,.2,1) both}
+.view.active{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.rail{display:flex;align-items:center;margin-bottom:24px;overflow-x:auto}
+.rail-step{display:flex;align-items:center;gap:8px;flex:none;color:var(--ink-3)}
+.rail-dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--line-2);background:var(--surface);display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink-3)}
+.rail-label{font-size:12px;font-weight:500;white-space:nowrap}
+.rail-line{width:26px;height:2px;background:var(--line-2);margin:0 6px;flex:none}
+.rail-step.done .rail-dot{background:var(--go);border-color:var(--go);color:#fff}
+.rail-step.active .rail-dot{background:var(--ink);border-color:var(--ink);color:#fff;box-shadow:0 0 0 4px rgba(20,31,51,.1)}
+.rail-step.active .rail-label{color:var(--ink);font-weight:600}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:700;margin:0 0 10px}
+h1.display{font-family:var(--disp);font-weight:700;font-size:clamp(26px,5vw,38px);line-height:1.06;letter-spacing:-.02em;margin:0 0 14px}
+.lede{font-size:16px;color:var(--ink-2);max-width:58ch;margin:0 0 24px}
+.hint{font-size:13px;color:var(--ink-3)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600;font-size:15px;border:none;border-radius:var(--r);padding:14px 22px;background:var(--navy-btn);color:#fff;transition:.18s;min-height:50px}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn svg{width:18px;height:18px}
+.btn.amber{background:linear-gradient(135deg,var(--amber),#F0A23F);color:var(--ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line-2)}
+.btn.ghost:hover{background:var(--surface-2);box-shadow:none}
+.btn.block{display:flex;width:100%}
+.btn.lg{padding:17px 26px;font-size:16px;min-height:56px}
+.btn.sm{padding:9px 14px;font-size:13px;min-height:38px;border-radius:10px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow)}
+.pad{padding:22px}
+@media(min-width:560px){.pad{padding:26px}}
+.hero{background:radial-gradient(120% 140% at 90% -20%,rgba(232,145,42,.14),transparent 55%),linear-gradient(180deg,#182741,#141F33);color:#fff;border-radius:var(--r-lg);padding:30px 26px;margin-bottom:22px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-40px;bottom:-30px;width:230px;height:230px;background:repeating-linear-gradient(90deg,transparent 0 16px,rgba(255,255,255,.05) 16px 40px);transform:rotate(-24deg);border-radius:20px}
+.hero p{color:#C7D2E6;font-size:16px;max-width:50ch;margin:0 0 22px;position:relative}
+.hero h1,.hero .btn-row{position:relative}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:15px 16px}
+.metric .n{font-family:var(--disp);font-weight:700;font-size:26px}
+.metric .l{font-size:12px;color:var(--ink-3);font-weight:500}
+.list-head{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px}
+.list-head h2{font-family:var(--disp);font-weight:600;font-size:18px;margin:0}
+.list-head .count{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.strip{position:relative;display:grid;grid-template-columns:6px 1fr auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;text-align:left;width:100%;margin-bottom:12px;transition:.18s}
+button.strip:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.strip .spine{background:var(--ink-3)}
+.strip.s-need .spine{background:var(--caution)} .strip.s-review .spine{background:var(--info)}
+.strip.s-ready .spine,.strip.s-handoff .spine{background:var(--go)}
+.strip-body{padding:15px 16px;min-width:0}
+.strip-top{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.callsign{font-family:var(--mono);font-size:12px;font-weight:700}
+.dept{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.strip-title{font-family:var(--disp);font-weight:600;font-size:16px;margin-bottom:8px;display:block}
+.strip-cells{display:flex;border-top:1px solid var(--line);margin:0 -16px -15px}
+.cell{padding:8px 16px;border-right:1px solid var(--line);flex:1;min-width:80px}
+.cell:last-child{border-right:none}
+.cell .k{font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:2px}
+.cell .v{font-size:13px;font-weight:600;color:var(--ink-2)}
+.strip-right{display:flex;align-items:center;padding:15px 16px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:100px;white-space:nowrap}
+.chip .led{width:7px;height:7px;border-radius:50%}
+.chip.draft{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)} .chip.draft .led{background:var(--ink-3)}
+.chip.need{background:var(--caution-soft);color:#8A5A08} .chip.need .led{background:var(--caution)}
+.chip.review{background:var(--info-soft);color:#1B4D86} .chip.review .led{background:var(--info)}
+.chip.ready,.chip.handoff{background:var(--go-soft);color:#0E6B41} .chip.ready .led,.chip.handoff .led{background:var(--go)}
+.field{margin-bottom:20px}
+.label{display:block;font-weight:600;font-size:14.5px;margin-bottom:4px}
+.sublabel{font-size:13px;color:var(--ink-3);margin:0 0 11px}
+.type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+.type-opt{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:14px;border:1.5px solid var(--line);border-radius:var(--r);background:var(--surface);text-align:left;min-height:74px;transition:.15s}
+.type-opt:hover{background:var(--surface-2)}
+.type-opt.sel{border-color:var(--ink);box-shadow:0 0 0 3px rgba(20,31,51,.08)}
+.type-opt .ico{font-size:20px} .type-opt .nm{font-weight:600;font-size:14px}
+input[type=text],input[type=password],input[type=number],textarea,select{width:100%;font-family:var(--body);font-size:15px;color:var(--ink);border:1.5px solid var(--line-2);border-radius:var(--r);padding:12px 14px;background:var(--surface)}
+textarea{resize:vertical;line-height:1.55;min-height:110px}
+input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px rgba(20,31,51,.09)}
+.method-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:560px){.method-grid{grid-template-columns:1fr 1fr}}
+.method{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:26px 20px;border:1.5px solid var(--line);border-radius:var(--r-lg);background:var(--surface);transition:.16s}
+.method:hover{border-color:var(--ink);transform:translateY(-2px);box-shadow:var(--shadow)}
+.method .badge{width:56px;height:56px;border-radius:16px;display:grid;place-items:center}
+.method.voice .badge{background:var(--amber-soft);color:#B26A0E}
+.method.write .badge{background:var(--info-soft);color:var(--info)}
+.method .badge svg{width:28px;height:28px}
+.method h3{font-family:var(--disp);font-weight:600;font-size:17px;margin:0}
+.method p{font-size:13px;color:var(--ink-3);margin:0}
+.mic-stage{display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 20px 22px}
+.mic-btn{width:112px;height:112px;border-radius:50%;border:none;position:relative;background:linear-gradient(135deg,#1E2E4B,#141F33);color:#fff;display:grid;place-items:center;box-shadow:var(--shadow-lg)}
+.mic-btn svg{width:42px;height:42px}
+.mic-btn.recording{background:linear-gradient(135deg,#C6462E,#A8371F)}
+.mic-btn.recording::before{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(198,70,46,.5);animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{from{transform:scale(1);opacity:.8}to{transform:scale(1.5);opacity:0}}
+.mic-state{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-top:20px}
+.mic-state.rec{color:var(--stop)}
+.timer{font-family:var(--disp);font-weight:700;font-size:28px;margin-top:6px}
+.sim-note{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3);background:var(--surface-2);border:1px dashed var(--line-2);border-radius:100px;padding:6px 13px;margin-top:20px}
+.proc-step{display:flex;align-items:center;gap:14px;padding:15px 0;border-bottom:1px solid var(--line);opacity:.4;transition:.4s}
+.proc-step:last-child{border-bottom:none}
+.proc-step.on,.proc-step.done{opacity:1}
+.proc-ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-3);flex:none}
+.proc-step.on .proc-ic{background:var(--ink);color:#fff}
+.proc-step.done .proc-ic{background:var(--go-soft);color:var(--go)}
+.proc-ic svg{width:19px;height:19px}
+.spin{width:18px;height:18px;border:2.5px solid var(--line-2);border-top-color:var(--ink);border-radius:50%;animation:sp .7s linear infinite;margin-left:auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.orig-quote{background:var(--surface-2);border-left:3px solid var(--amber);border-radius:0 10px 10px 0;padding:13px 15px;font-size:14.5px;color:var(--ink-2);font-style:italic;margin-bottom:20px}
+.sfield{margin-bottom:18px}
+.sfield label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:700;margin-bottom:7px}
+.ai-tag{font-family:var(--body);font-size:10px;letter-spacing:0;text-transform:none;background:var(--amber-soft);color:#8A5A08;padding:2px 7px;border-radius:100px;font-weight:600}
+.fin-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+@media(min-width:660px){.fin-grid{grid-template-columns:1fr 1fr 1fr}}
+.unknowns{background:var(--caution-soft);border:1px solid #F0D9A8;border-radius:var(--r);padding:16px 18px}
+.unknowns h4{font-family:var(--disp);font-size:14px;margin:0 0 10px;color:#8A5A08}
+.unknowns ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.unknowns li{display:flex;gap:10px;font-size:14px;color:#7A5410}
+.unknowns li .dot{width:6px;height:6px;border-radius:50%;background:var(--caution);flex:none;margin-top:7px}
+.qual-head{display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center}
+@media(min-width:620px){.qual-head{flex-direction:row;text-align:left;gap:26px}}
+.gauge{position:relative;width:200px;height:120px;flex:none}
+.gauge .score{position:absolute;bottom:2px;left:0;right:0;text-align:center}
+.gauge .num{font-family:var(--disp);font-weight:700;font-size:44px;line-height:1}
+.gauge .den{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.qual-verdict h2{font-family:var(--disp);font-weight:600;font-size:22px;margin:0 0 6px}
+.qual-verdict p{font-size:15px;color:var(--ink-2);margin:0}
+.divider{height:1px;background:var(--line);margin:22px 0}
+.cats{display:flex;flex-direction:column;gap:14px}
+.cat-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.cat-name{font-weight:600;font-size:14px}
+.cat-val{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-weight:700}
+.bar{height:8px;background:var(--surface-2);border-radius:100px;overflow:hidden}
+.bar span{display:block;height:100%;border-radius:100px;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.cat-note{font-size:12.5px;color:var(--ink-3);margin-top:5px}
+.two-col{display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px}
+@media(min-width:620px){.two-col{grid-template-columns:1fr 1fr}}
+.feedback h4{font-family:var(--disp);font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.feedback ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.feedback li{display:flex;gap:10px;font-size:14px;color:var(--ink-2)}
+.feedback li .m{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;margin-top:1px}
+.feedback li .m svg{width:12px;height:12px}
+.strong li .m{background:var(--go-soft);color:var(--go)}
+.miss li .m{background:var(--caution-soft);color:var(--caution)}
+.coach{background:linear-gradient(135deg,#1E2E4B,#141F33);color:#fff;border-radius:var(--r);padding:18px 20px;margin-top:16px}
+.coach p{margin:0;font-size:15px;color:#DCE4F1}
+.rewrite{background:var(--info-soft);border:1px solid #C3DAF3;border-radius:var(--r);padding:14px 16px;margin-top:14px}
+.rewrite h4{font-family:var(--disp);font-size:14px;margin:0 0 8px;color:#1B4D86}
+.rewrite .rw{font-size:13.5px;color:#1B3F68;margin-bottom:10px;white-space:pre-wrap}
+.readiness{display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:var(--r);margin:20px 0}
+.readiness.ok{background:var(--go-soft);border:1px solid #B4E0C8}
+.readiness.need{background:var(--caution-soft);border:1px solid #F0D9A8}
+.readiness .rico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff}
+.readiness.ok .rico{background:var(--go)} .readiness.need .rico{background:var(--caution)}
+.readiness .rico svg{width:24px;height:24px}
+.readiness h3{font-family:var(--disp);font-size:17px;margin:0 0 2px}
+.readiness p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.stamp{width:84px;height:84px;border-radius:50%;background:var(--go-soft);display:grid;place-items:center;margin:0 auto 18px;color:var(--go)}
+.stamp svg{width:44px;height:44px}
+.flow-node{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r)}
+.flow-node .fn-ic{width:34px;height:34px;border-radius:9px;background:var(--ink);color:#fff;display:grid;place-items:center;flex:none}
+.flow-node.dim{opacity:.6} .flow-node.dim .fn-ic{background:var(--ink-3)}
+.flow-node .fn-ic svg{width:17px;height:17px}
+.flow-node b{font-size:14.5px;display:block} .flow-node span{font-size:12.5px;color:var(--ink-3)}
+.flow-arrow{width:2px;height:16px;background:var(--line-2);margin:2px 0 2px 32px}
+.back-link{display:inline-flex;align-items:center;gap:7px;font-size:14px;color:var(--ink-2);background:none;border:none;padding:6px 0;margin-bottom:12px;font-weight:500}
+.back-link svg{width:16px;height:16px}
+.modal{position:fixed;inset:0;background:rgba(20,31,51,.55);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:26px 16px;overflow:auto}
+.modal.open{display:flex}
+.modal-card{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:560px;box-shadow:var(--shadow-lg)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid var(--line)}
+.modal-head h3{font-family:var(--disp);margin:0;font-size:18px}
+.x{background:none;border:none;font-size:22px;color:var(--ink-3);line-height:1}
+.modal-body{padding:22px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.status-line{font-size:13px;margin-top:10px;padding:10px 12px;border-radius:10px;display:none}
+.status-line.ok{display:block;background:var(--go-soft);color:#0E6B41}
+.status-line.err{display:block;background:#F7DFD9;color:#8A2A16}
+.engine-note{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--ink-3);margin-top:10px}
+.disclaimer{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--ink-3);text-align:center;padding:18px;line-height:1.7}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:13px 20px;border-radius:100px;font-size:14px;font-weight:500;box-shadow:var(--shadow-lg);opacity:0;transition:.3s;z-index:80;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L11 19v-5.5l8 2.5z" fill="currentColor"/></svg></span>
+      <span>Groundwork<small>Capital Intake</small></span>
+    </div>
+    <div class="spacer"></div>
+    <span class="pill" id="enginePill">rules mode</span>
+    <button class="pill" onclick="openSettings()">Settings</button>
+    <a class="pill" id="logoutPill" href="/logout" style="display:none">Log out</a>
+  </header>
+
+  <main class="main">
+    <!-- HOME -->
+    <section class="view active" id="view-home">
+      <div class="hero">
+        <p class="eyebrow">Front-door intake</p>
+        <h1 class="display">Turn an idea into a<br>Levelpath-ready request.</h1>
+        <p>Describe what you need in your own words. Groundwork builds the five-point justification, scores it against what gets approved, and tells you what is still missing.</p>
+        <div class="btn-row">
+          <button class="btn amber lg" onclick="startNew()"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Start a request</button>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="n" id="mDraft">0</div><div class="l">In progress</div></div>
+        <div class="metric"><div class="n" id="mReady">0</div><div class="l">Ready for Levelpath</div></div>
+        <div class="metric"><div class="n" id="mAvg">—</div><div class="l">Avg. score</div></div>
+      </div>
+      <div class="list-head"><h2>Your requests</h2><span class="count" id="reqCount"></span></div>
+      <div id="requestList"></div>
+    </section>
+
+    <!-- NEW -->
+    <section class="view" id="view-new">
+      <button class="back-link" onclick="go('home')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Home</button>
+      <p class="eyebrow">New request</p>
+      <h1 class="display" style="font-size:clamp(24px,5vw,32px)">What do you need?</h1>
+      <p class="lede">A short name and the closest category. You can change everything later.</p>
+      <div class="card pad">
+        <div class="field">
+          <label class="label" for="reqTitle">Request name</label>
+          <p class="sublabel">A few words — for example "BOS Facilities van replacement".</p>
+          <input type="text" id="reqTitle" placeholder="e.g. Replacement barcode scanners — Cargo" />
+        </div>
+        <div class="row">
+          <div class="field"><label class="label" for="reqDept">Department</label><input type="text" id="reqDept" /></div>
+          <div class="field"><label class="label" for="reqRequester">Requester</label><input type="text" id="reqRequester" placeholder="Your name" /></div>
+        </div>
+        <div class="field">
+          <label class="label">What kind of thing is it?</label>
+          <div class="type-grid" id="typeGrid">
+            <button class="type-opt" data-type="Equipment" onclick="pickType(this)"><span class="ico">📦</span><span class="nm">Equipment</span></button>
+            <button class="type-opt" data-type="IT / Hardware" onclick="pickType(this)"><span class="ico">💻</span><span class="nm">IT / Hardware</span></button>
+            <button class="type-opt" data-type="Software" onclick="pickType(this)"><span class="ico">🧩</span><span class="nm">Software</span></button>
+            <button class="type-opt" data-type="Facility" onclick="pickType(this)"><span class="ico">🏗️</span><span class="nm">Facility</span></button>
+            <button class="type-opt" data-type="Vehicle / GSE" onclick="pickType(this)"><span class="ico">🚜</span><span class="nm">Vehicle / GSE</span></button>
+            <button class="type-opt" data-type="New Product" onclick="pickType(this)"><span class="ico">✳️</span><span class="nm">New Product</span></button>
+          </div>
+        </div>
+        <button class="btn block lg" onclick="go('method')">Continue<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
+    </section>
+
+    <!-- METHOD -->
+    <section class="view" id="view-method">
+      <button class="back-link" onclick="go('new')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Back</button>
+      <p class="eyebrow">Explain the need</p>
+      <h1 class="display" style="font-size:clamp(24px,5vw,32px)">How would you like to explain it?</h1>
+      <p class="lede">Describe it like you would to a colleague. Groundwork handles the structure.</p>
+      <div class="method-grid">
+        <button class="method voice" onclick="go('voice')">
+          <span class="badge"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z" fill="currentColor"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Speak it</h3><p>Dictate it. Uses your browser's speech recognition — edit before continuing.</p>
+        </button>
+        <button class="method write" onclick="go('write')">
+          <span class="badge"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z" stroke="currentColor" stroke-width="2"/><path d="M13.5 6.5l3 3" stroke="currentColor" stroke-width="2"/></svg></span>
+          <h3>Write it</h3><p>Type a few sentences about the problem and what you need.</p>
+        </button>
+      </div>
+    </section>
+
+    <!-- VOICE -->
+    <section class="view" id="view-voice">
+      <button class="back-link" onclick="go('method')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Back</button>
+      <div class="card pad">
+        <div class="mic-stage">
+          <button class="mic-btn" id="micBtn" onclick="toggleRec()" aria-label="Start recording">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z" fill="currentColor"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <div class="mic-state" id="micState">Ready to record</div>
+          <div class="timer" id="timer" style="display:none">0:00</div>
+          <span class="sim-note" id="micNote">Uses the browser Web Speech API. No audio leaves your machine.</span>
+        </div>
+        <div class="divider"></div>
+        <div class="sfield"><label>Transcript — review &amp; fix before continuing</label><textarea id="transcript" rows="6" placeholder="Your dictation appears here. You can also type directly."></textarea></div>
+        <button class="btn block" onclick="structure(val('transcript'))">Build the five-point draft<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
+    </section>
+
+    <!-- WRITE -->
+    <section class="view" id="view-write">
+      <button class="back-link" onclick="go('method')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Back</button>
+      <p class="eyebrow">Explain the need</p>
+      <h1 class="display" style="font-size:clamp(24px,5vw,30px)">Tell us what's going on</h1>
+      <p class="lede">What is the problem today, and what are you asking for? Include any numbers you already know — age, failure rate, quotes, volumes.</p>
+      <div class="card pad">
+        <div class="sfield"><label>In your own words</label><textarea id="writeInput" rows="8" placeholder="e.g. Facilities in BOS runs a 2007 minivan with 140,761 miles for tool and personnel transport. The fuel gauge fails intermittently, the interior is unserviceable, and it was never built as a maintenance vehicle. We want to replace it with a small crew-cab pickup."></textarea></div>
+        <button class="btn block lg" onclick="structure(val('writeInput'))">Build the five-point draft<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <p class="hint" style="margin-top:14px;text-align:center">Not sure what to write? <button onclick="fillExample()" style="background:none;border:none;color:var(--info);font-weight:600;font-size:13px">Load the BOS van example</button></p>
+      </div>
+    </section>
+
+    <!-- PROCESSING -->
+    <section class="view" id="view-processing">
+      <p class="eyebrow">Working on it</p>
+      <h1 class="display" style="font-size:clamp(22px,5vw,28px)">Building your five-point draft…</h1>
+      <div class="card pad">
+        <div id="procSteps">
+          <div class="proc-step"><div class="proc-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div>Reading your description</div></div>
+          <div class="proc-step"><div class="proc-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div>Separating situation, proposal and justification</div></div>
+          <div class="proc-step"><div class="proc-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h4l3 8 4-16 3 8h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div>Pulling out financial facts</div></div>
+          <div class="proc-step"><div class="proc-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div>Listing what is still missing</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REVIEW -->
+    <section class="view" id="view-review">
+      <div class="rail" id="rail-review"></div>
+      <p class="eyebrow">Review &amp; edit</p>
+      <h1 class="display" style="font-size:clamp(22px,5vw,30px)">Your five-point draft</h1>
+      <p class="lede">Anything wrong? Edit it directly — you know the details better than we do. Empty fields are fine; they show up as open items.</p>
+      <div class="card pad" style="margin-bottom:16px">
+        <div class="sfield"><label>What you told us</label><div class="orig-quote" id="origQuote"></div></div>
+        <div class="sfield"><label>Executive summary <span class="ai-tag">drafted</span></label><textarea id="f_executive_summary" rows="3"></textarea></div>
+        <div class="sfield"><label>1 · Background / Current situation <span class="ai-tag">drafted</span></label><textarea id="f_background" rows="4"></textarea></div>
+        <div class="sfield"><label>2 · Proposal <span class="ai-tag">drafted</span></label><textarea id="f_proposal" rows="4"></textarea></div>
+        <div class="sfield"><label>3 · Justification</label><textarea id="f_justification" rows="4"></textarea></div>
+        <div class="sfield"><label>Operational impact assessment</label><textarea id="f_operational_impact" rows="3"></textarea></div>
+        <div class="row">
+          <div class="sfield"><label>Who is affected</label><input type="text" id="f_affected_groups" /></div>
+          <div class="sfield"><label>Why now / timing</label><input type="text" id="f_timing" /></div>
+        </div>
+        <div class="sfield"><label>4 · Risks (pair each with a mitigation)</label><textarea id="f_risks" rows="4"></textarea></div>
+        <div class="sfield"><label>5 · Alternatives (and why not selected)</label><textarea id="f_alternatives" rows="4"></textarea></div>
+      </div>
+      <div class="card pad" style="margin-bottom:16px">
+        <div class="sfield" style="margin-bottom:12px"><label>Financials — the section weak requests skip</label></div>
+        <div class="fin-grid">
+          <div class="sfield"><label>One-time cost</label><input type="text" id="f_capex" placeholder="$30,348" /></div>
+          <div class="sfield"><label>Recurring annual</label><input type="text" id="f_opex_annual" /></div>
+          <div class="sfield"><label>Annual benefit</label><input type="text" id="f_benefit_annual" /></div>
+          <div class="sfield"><label>NPV @ 20%</label><input type="text" id="f_npv" /></div>
+          <div class="sfield"><label>5-yr MIRR</label><input type="text" id="f_mirr" /></div>
+          <div class="sfield"><label>Payback (months)</label><input type="text" id="f_payback_months" /></div>
+        </div>
+        <div class="sfield" style="margin-bottom:0"><label>Key assumptions</label><textarea id="f_assumptions" rows="2"></textarea></div>
+      </div>
+      <div class="unknowns" id="unknownsBox"><h4>Still missing — fill these before submitting</h4><ul id="unknownsList"></ul></div>
+      <p class="engine-note" id="structEngine"></p>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn ghost" onclick="saveDraft()">Save draft</button>
+        <button class="btn" style="flex:1" onclick="qualify()">Score my request<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
+    </section>
+
+    <!-- QUALIFY -->
+    <section class="view" id="view-qual">
+      <div class="rail" id="rail-qual"></div>
+      <div class="card pad" style="margin-bottom:16px">
+        <div class="qual-head">
+          <div class="gauge" id="gauge"></div>
+          <div class="qual-verdict"><h2 id="verdictTitle"></h2><p id="verdictText"></p></div>
+        </div>
+        <div class="divider"></div>
+        <div class="cats" id="cats"></div>
+      </div>
+      <div class="two-col">
+        <div class="card pad feedback strong"><h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="var(--go)" stroke-width="2.4" stroke-linecap="round"/></svg>What's strong</h4><ul id="strongList"></ul></div>
+        <div class="card pad feedback miss"><h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="var(--caution)" stroke-width="2" stroke-linecap="round"/></svg>What's still needed</h4><ul id="missList"></ul></div>
+      </div>
+      <div class="coach"><p class="eyebrow">Suggested next step</p><p id="coachText"></p></div>
+      <div id="rewriteBox"></div>
+      <p class="engine-note" id="qualEngine"></p>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn ghost" onclick="go('review')">Add more detail</button>
+        <button class="btn" style="flex:1" onclick="handoff()">Continue<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
+    </section>
+
+    <!-- HANDOFF -->
+    <section class="view" id="view-handoff">
+      <div class="rail" id="rail-handoff"></div>
+      <div style="text-align:center;padding:16px 10px 0">
+        <div class="stamp" id="handoffStamp"><svg viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg></div>
+        <h1 class="display" style="font-size:clamp(22px,5vw,30px)" id="handoffTitle"></h1>
+        <p class="lede" style="margin:0 auto" id="handoffText"></p>
+      </div>
+      <div class="readiness ok" id="handoffBanner">
+        <div class="rico"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+        <div><h3 id="bannerTitle"></h3><p id="bannerText"></p></div>
+      </div>
+      <p class="eyebrow" style="margin-top:22px">Where it goes next</p>
+      <div>
+        <div class="flow-node"><div class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><b>Groundwork intake</b><span>Structured &amp; scored — you are here</span></div></div>
+        <div class="flow-arrow"></div>
+        <div class="flow-node dim"><div class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4h16v16H4zM8 9h8M8 13h8M8 17h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><b>Levelpath intake</b><span>Paste the export or POST the JSON payload</span></div></div>
+        <div class="flow-arrow"></div>
+        <div class="flow-node dim"><div class="fn-ic"><svg viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><div><b>Capital approval workflow</b><span>Finance &amp; leadership review</span></div></div>
+      </div>
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn amber" id="dlDocx" onclick="dl('docx')">Download Word 5-point</button>
+        <button class="btn ghost" onclick="dl('json')">Levelpath JSON</button>
+        <button class="btn ghost" onclick="dl('md')">Markdown</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px"><button class="btn ghost block" onclick="go('home');loadList()">Save &amp; return home</button></div>
+    </section>
+  </main>
+
+  <p class="disclaimer">GROUNDWORK · PRE-LEVELPATH INTAKE · DRAFTING AID, NOT AN APPROVAL</p>
+</div>
+
+<!-- SETTINGS -->
+<div class="modal" id="settingsModal">
+  <div class="modal-card">
+    <div class="modal-head"><h3>Settings</h3><button class="x" onclick="closeSettings()">×</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="label">Provider</label>
+        <select id="s_provider" onchange="onProviderChange()">
+          <option value="openai">OpenAI-compatible</option>
+          <option value="azure_openai">Azure OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="custom">Custom gateway</option>
+        </select>
+        <p class="sublabel" id="providerHint" style="margin-top:8px"></p>
+      </div>
+      <div class="field"><label class="label">Base URL</label><input type="text" id="s_base_url" /></div>
+      <div class="field"><label class="label">API key</label><input type="password" id="s_api_key" placeholder="leave blank to keep the saved key" /><p class="sublabel" style="margin-top:6px">Stored server-side in <span style="font-family:var(--mono)">data/settings.json</span>. Never sent to the browser.</p></div>
+      <div class="row">
+        <div class="field"><label class="label">Model</label><input type="text" id="s_model" list="modelPresets" placeholder="pick a preset or type any model" /><datalist id="modelPresets"></datalist></div>
+        <div class="field"><label class="label">Deployment <span class="hint">(Azure)</span></label><input type="text" id="s_deployment" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label class="label">API version</label><input type="text" id="s_api_version" /></div>
+        <div class="field"><label class="label">Temperature</label><input type="number" step="0.1" min="0" max="2" id="s_temperature" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label class="label">Max tokens</label><input type="number" id="s_max_tokens" /></div>
+        <div class="field"><label class="label">Timeout (s)</label><input type="number" id="s_timeout_seconds" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label class="label">Default department</label><input type="text" id="s_default_department" /></div>
+        <div class="field"><label class="label">Ready threshold</label><input type="number" id="s_min_score_to_advance" /></div>
+      </div>
+      <div class="field"><label class="label"><input type="checkbox" id="s_offline_mode" style="width:auto;margin-right:8px">Offline mode (rules only, never call the API)</label></div>
+      <div class="status-line" id="sStatus"></div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn ghost" onclick="testConn()">Test connection</button>
+        <button class="btn" style="flex:1" onclick="saveSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FIELDS=['executive_summary','background','proposal','justification','operational_impact',
+  'affected_groups','timing','risks','alternatives','capex','opex_annual','benefit_annual',
+  'npv','mirr','payback_months','assumptions'];
+let state={};
+const $=id=>document.getElementById(id);
+const val=id=>($(id)?.value||'').trim();
+const api=async(u,o={})=>{const r=await fetch(u,{headers:{'content-type':'application/json'},...o});
+  if(r.status===401){location.href='/login';return new Promise(()=>{});}
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||r.statusText);return d;};
+
+/* ---------- nav ---------- */
+const RAIL=['Describe','Review','Score','Handoff'];
+function renderRail(v,a){const el=$('rail-'+v);if(!el)return;
+  el.innerHTML=RAIL.map((s,i)=>{const c=i<a?'done':(i===a?'active':'');
+    return `<div class="rail-step ${c}"><span class="rail-dot">${i<a?'✓':i+1}</span><span class="rail-label">${s}</span></div>`+
+      (i<RAIL.length-1?'<span class="rail-line"></span>':'');}).join('');}
+function go(v){['home','new','method','voice','write','processing','review','qual','handoff']
+  .forEach(id=>$('view-'+id).classList.toggle('active',id===v));
+  window.scrollTo({top:0,behavior:'smooth'});
+  const st={review:1,qual:2,handoff:3}[v]; if(st!==undefined)renderRail(v,st);}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ---------- home ---------- */
+async function loadList(){
+  const {items}=await api('/api/requests');
+  $('reqCount').textContent=items.length+' total';
+  const scored=items.filter(i=>i.score>0);
+  $('mDraft').textContent=items.filter(i=>['draft','need','review'].includes(i.status)).length;
+  $('mReady').textContent=items.filter(i=>['ready','handoff'].includes(i.status)).length;
+  $('mAvg').textContent=scored.length?Math.round(scored.reduce((a,b)=>a+b.score,0)/scored.length):'—';
+  $('requestList').innerHTML=items.length?items.map(r=>`
+    <button class="strip s-${r.status}" onclick="openReq('${r.id}')"><span class="spine"></span>
+      <span class="strip-body">
+        <span class="strip-top"><span class="callsign">${r.id}</span><span class="dept">${esc(r.department||'')}</span></span>
+        <span class="strip-title">${esc(r.title||'Untitled')}</span>
+        <span class="strip-cells">
+          <span class="cell"><span class="k">Type</span><span class="v">${esc(r.request_type||'—')}</span></span>
+          <span class="cell"><span class="k">Score</span><span class="v">${r.score?r.score+' / 100':'—'}</span></span>
+          <span class="cell"><span class="k">Updated</span><span class="v">${new Date(r.updated*1000).toLocaleDateString()}</span></span>
+        </span></span>
+      <span class="strip-right"><span class="chip ${r.status}"><span class="led"></span>${label(r.status)}</span></span>
+    </button>`).join(''):'<p class="hint">No requests yet — start one above.</p>';
+}
+const label=s=>({draft:'Draft',need:'Needs information',review:'Almost there',ready:'Ready',handoff:'Sent to Levelpath'}[s]||'Draft');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function openReq(id){state=await api('/api/requests/'+id);populateReview();
+  if(state.qualification){renderQual(state.qualification);go('qual');}else go('review');}
+
+/* ---------- new ---------- */
+function startNew(){state={};$('reqTitle').value='';$('writeInput').value='';$('transcript').value='';
+  document.querySelectorAll('.type-opt').forEach(o=>o.classList.remove('sel'));go('new');}
+function pickType(el){document.querySelectorAll('.type-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');state.request_type=el.dataset.type;}
+
+/* ---------- voice (real Web Speech API) ---------- */
+let rec=null,recording=false,tmr=null,secs=0;
+function toggleRec(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){$('micNote').textContent='This browser has no speech recognition — type your description below.';return;}
+  if(!recording){
+    rec=new SR();rec.continuous=true;rec.interimResults=true;rec.lang='en-US';
+    let fin=$('transcript').value?$('transcript').value+' ':'';
+    rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;e.results[i].isFinal?fin+=t+' ':interim+=t;}
+      $('transcript').value=(fin+interim).trim();};
+    rec.onerror=e=>{$('micState').textContent='Mic error: '+e.error;stopRec();};
+    rec.onend=()=>{if(recording)rec.start();};
+    rec.start();recording=true;secs=0;
+    $('micBtn').classList.add('recording');$('micState').textContent='Recording — tap to stop';
+    $('micState').classList.add('rec');$('timer').style.display='block';
+    tmr=setInterval(()=>{secs++;$('timer').textContent=`${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;},1000);
+  } else stopRec();
+}
+function stopRec(){recording=false;clearInterval(tmr);try{rec&&rec.stop();}catch(e){}
+  $('micBtn').classList.remove('recording');$('micState').classList.remove('rec');
+  $('micState').textContent='Transcript ready — review it below';}
+
+function fillExample(){$('writeInput').value="Facilities in BOS runs a 2007 Chrysler Town and Country with 140,761 miles for tool and personnel transport. It was spared from salvage years ago and is in rough shape — exterior rust on the lower panels, unserviceable seating and carpeting, no headliner, and the fuel gauge needle falls off so we cannot tell how much fuel is left. It was never designed as a maintenance vehicle, which has accelerated the decline. We have a fleet-contract quote for a crew-cab compact pickup at $30,348 all in. A smaller truck also maneuvers better in ramp congestion.";}
+
+/* ---------- structure ---------- */
+async function structure(text){
+  if(!text||text.length<8){toast('Add a sentence or two first');return;}
+  go('processing');animateProc();
+  try{
+    const body={text,title:val('reqTitle')||'Untitled request',request_type:state.request_type||'',
+      department:val('reqDept'),requester:val('reqRequester')};
+    state=await api('/api/structure',{method:'POST',body:JSON.stringify(body)});
+    populateReview();go('review');
+  }catch(e){toast(e.message);go('write');}
+}
+function animateProc(){const steps=[...document.querySelectorAll('.proc-step')];
+  steps.forEach(s=>{s.className='proc-step';s.querySelector('.spin')?.remove();});
+  let i=0;(function tick(){if(i>0)steps[i-1].className='proc-step done';
+    if(i<steps.length){steps[i].className='proc-step on';
+      const sp=document.createElement('span');sp.className='spin';steps[i].appendChild(sp);i++;setTimeout(tick,620);}})();}
+
+function populateReview(){
+  $('origQuote').textContent='“'+(state.original_description||'')+'”';
+  FIELDS.forEach(f=>{if($('f_'+f))$('f_'+f).value=state[f]||'';});
+  const mi=state.missing_information||[];
+  $('unknownsList').innerHTML=mi.map(m=>`<li><span class="dot"></span>${esc(m)}</li>`).join('');
+  $('unknownsBox').style.display=mi.length?'block':'none';
+  $('structEngine').textContent=state.engine?('Drafted by: '+state.engine+(state.engine_error?' — '+state.engine_error:'')):'';
+}
+function collect(){const o={id:state.id,title:val('reqTitle')||state.title,
+  request_type:state.request_type||'',department:val('reqDept')||state.department,
+  requester:val('reqRequester')||state.requester};
+  FIELDS.forEach(f=>{if($('f_'+f))o[f]=$('f_'+f).value.trim();});return o;}
+async function saveDraft(){state=await api('/api/requests',{method:'POST',body:JSON.stringify(collect())});
+  toast('Draft saved · '+state.id);loadList();}
+
+/* ---------- qualify ---------- */
+async function qualify(){
+  toast('Scoring…');
+  state=await api('/api/qualify',{method:'POST',body:JSON.stringify(collect())});
+  renderQual(state.qualification);go('qual');loadList();
+}
+const col=v=>v>=75?'var(--go)':v>=55?'var(--caution)':'var(--stop)';
+function renderQual(r){
+  const pct=r.overall/100,len=Math.PI*82,c=col(r.overall);
+  $('gauge').innerHTML=`<svg viewBox="0 0 200 120" width="200" height="120">
+    <path d="M18 104 A82 82 0 0 1 182 104" fill="none" stroke="var(--surface-2)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M18 104 A82 82 0 0 1 182 104" fill="none" stroke="${c}" stroke-width="14" stroke-linecap="round"
+      stroke-dasharray="${len}" stroke-dashoffset="${len*(1-pct)}" style="transition:stroke-dashoffset 1s"/></svg>
+    <div class="score"><span class="num" style="color:${c}">${r.overall}</span><span class="den"> / 100</span></div>`;
+  const titles={ready:'Ready for Levelpath',review:'Almost there',need:'Needs more before submitting'};
+  const texts={ready:'Strong request. Confirm the financial assumptions and move it forward.',
+    review:'Clear problem and proposal — a couple of details will get it over the line.',
+    need:'Good start. Key facts are missing before this can be submitted.'};
+  $('verdictTitle').textContent=titles[r.status];$('verdictText').textContent=texts[r.status];
+  $('cats').innerHTML=r.categories.map(c2=>`<div>
+      <div class="cat-top"><span class="cat-name">${esc(c2.name)} <span class="hint">· ${c2.weight}%</span></span><span class="cat-val">${c2.score}</span></div>
+      <div class="bar"><span style="width:0%;background:${col(c2.score)}"></span></div>
+      ${c2.comment?`<div class="cat-note">${esc(c2.comment)}</div>`:''}</div>`).join('');
+  requestAnimationFrame(()=>document.querySelectorAll('#cats .bar span')
+    .forEach((s,i)=>s.style.width=r.categories[i].score+'%'));
+  const ok='<svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+  const wn='<svg viewBox="0 0 24 24" fill="none"><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  $('strongList').innerHTML=(r.strong||[]).map(s=>`<li><span class="m">${ok}</span>${esc(s)}</li>`).join('');
+  $('missList').innerHTML=(r.missing||[]).map(s=>`<li><span class="m">${wn}</span>${esc(s)}</li>`).join('');
+  $('coachText').textContent=r.coach||'';
+  const rw=r.rewrite_suggestions||{};
+  $('rewriteBox').innerHTML=Object.keys(rw).length?`<div class="rewrite"><h4>Suggested stronger wording</h4>`+
+    Object.entries(rw).map(([k,v])=>`<div class="rw"><b>${esc(k.replace(/_/g,' '))}</b><br>${esc(v)}</div>
+      <button class="btn sm ghost" onclick="applyRw('${k}',this)">Use this</button>`).join('<div style="height:10px"></div>')+`</div>`:'';
+  window._rw=rw;
+  $('qualEngine').textContent='Scored by: '+(r.engine||'rules')+(r.rules_score!==undefined?` · rules baseline ${r.rules_score}`:'')+(r.engine_error?' — '+r.engine_error:'');
+}
+function applyRw(k,btn){if($('f_'+k)){$('f_'+k).value=window._rw[k];btn.textContent='Applied';toast('Applied — re-score to see the change');}}
+
+/* ---------- handoff ---------- */
+async function handoff(){
+  const r=await api('/api/handoff',{method:'POST',body:JSON.stringify({id:state.id})});
+  const ok=r.ok;
+  $('handoffTitle').textContent=ok?'Passed qualification':'Saved — not ready yet';
+  $('handoffText').textContent=ok?'Export the five-point document or the JSON payload and load it into Levelpath.'
+    :`Score ${r.score} is below the ${r.threshold} threshold. Add the missing items and re-score.`;
+  $('handoffBanner').className='readiness '+(ok?'ok':'need');
+  $('bannerTitle').textContent=ok?'Ready for Levelpath':'Needs more information';
+  $('bannerText').textContent=ok?'Nothing to re-type — every field carries into the export.'
+    :'Go back and close the open items, then score again.';
+  $('handoffStamp').style.background=ok?'var(--go-soft)':'var(--caution-soft)';
+  $('handoffStamp').style.color=ok?'var(--go)':'var(--caution)';
+  $('dlDocx').disabled=!ok;
+  go('handoff');loadList();
+}
+function dl(fmt){window.location='/api/export?id='+encodeURIComponent(state.id)+'&format='+fmt;}
+
+/* ---------- settings ---------- */
+const SKEYS=['provider','base_url','model','deployment','api_version','temperature','max_tokens',
+  'timeout_seconds','default_department','min_score_to_advance'];
+// Per-provider defaults. Models are suggestions only — the field accepts any string,
+// so new models work the moment a provider ships them.
+const PROVIDER_DEFAULTS={
+  openai:{base_url:'https://api.openai.com/v1',
+    models:['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1','o4-mini']},
+  anthropic:{base_url:'https://api.anthropic.com',
+    models:['claude-sonnet-5','claude-opus-5-5','claude-haiku-4-5-20251001','claude-opus-4-8']},
+  azure_openai:{base_url:'https://<resource>.openai.azure.com',
+    models:['gpt-4o-mini','gpt-4o','gpt-4.1-mini']},
+  custom:{base_url:'',models:[]}};
+const _allBase=Object.values(PROVIDER_DEFAULTS).map(d=>d.base_url).filter(Boolean);
+const _allModels=[...new Set(Object.values(PROVIDER_DEFAULTS).flatMap(d=>d.models))];
+function refreshModelPresets(){const d=PROVIDER_DEFAULTS[$('s_provider').value]||{models:[]};
+  $('modelPresets').innerHTML=d.models.map(m=>`<option value="${m}"></option>`).join('');}
+function onProviderChange(){providerHint();
+  const d=PROVIDER_DEFAULTS[$('s_provider').value]||{base_url:'',models:[]};
+  const bu=$('s_base_url');if(!bu.value||_allBase.includes(bu.value))bu.value=d.base_url;
+  const md=$('s_model');if(!md.value||_allModels.includes(md.value))md.value=d.models[0]||md.value;
+  refreshModelPresets();}
+async function openSettings(){const s=await api('/api/settings');
+  SKEYS.forEach(k=>{if($('s_'+k))$('s_'+k).value=s[k]??'';});
+  $('s_offline_mode').checked=!!s.offline_mode;
+  $('s_api_key').placeholder=s.api_key_set?'•••••• saved — blank keeps it':'paste your key';
+  providerHint();refreshModelPresets();$('settingsModal').classList.add('open');}
+function closeSettings(){$('settingsModal').classList.remove('open');}
+function providerHint(){const p=$('s_provider').value;
+  $('providerHint').textContent={openai:'Base URL like https://api.openai.com/v1',
+    azure_openai:'Base URL like https://<resource>.openai.azure.com — set Deployment + API version',
+    anthropic:'Base URL https://api.anthropic.com',
+    custom:'Any OpenAI-compatible /chat/completions gateway'}[p];}
+function settingsBody(){const b={offline_mode:$('s_offline_mode').checked};
+  SKEYS.forEach(k=>{if($('s_'+k))b[k]=$('s_'+k).value;});
+  if(val('s_api_key'))b.api_key=val('s_api_key');return b;}
+async function saveSettings(){await api('/api/settings',{method:'POST',body:JSON.stringify(settingsBody())});
+  $('s_api_key').value='';status('Saved.',true);enginePill();}
+async function testConn(){status('Testing…',true);
+  const r=await api('/api/settings/test',{method:'POST',body:JSON.stringify(settingsBody())});
+  status(r.ok?'Connection OK — '+r.detail:'Failed: '+r.detail,r.ok);enginePill();}
+function status(m,ok){const e=$('sStatus');e.textContent=m;e.className='status-line '+(ok?'ok':'err');}
+async function enginePill(){const s=await api('/api/schema');
+  $('enginePill').textContent=s.llm_ready?'model connected':'rules mode';
+  $('enginePill').className='pill'+(s.llm_ready?' live':'');
+  if(s.auth_required)$('logoutPill').style.display='';}
+
+/* ---------- init ---------- */
+(async()=>{const s=await api('/api/settings');$('reqDept').value=s.default_department||'';
+  enginePill();loadList();})();
+</script>
+</body>
+</html>

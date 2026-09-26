@@ -1,0 +1,47 @@
+# Render Blueprint — deploy from the repo root (the folder containing app.py).
+# In Render: New > Blueprint, point it at your repo. Everything below is created
+# for you. Secrets marked sync:false are entered once in the dashboard and never
+# committed to git.
+services:
+  - type: web
+    name: groundwork-intake
+    runtime: python
+    plan: free                      # 512 MB / 0.1 CPU; sleeps after ~15 min idle
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py     # reads $PORT and binds 0.0.0.0 automatically
+    healthCheckPath: /healthz       # open endpoint — not behind the login gate
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      # ---- Login gate ----
+      # Leave GW_APP_PASSWORD unset to use the built-in default password, or set it
+      # here to override. Set it to an empty value to disable the login entirely.
+      - key: GW_APP_PASSWORD
+        sync: false                # enter/override the password in the dashboard
+      - key: GW_SECRET_KEY
+        generateValue: true        # random, persistent session secret
+      # ---- API configuration (env always wins over the Settings UI) ----
+      # Set these in the Render dashboard so the key is never written to the
+      # ephemeral disk and cannot be overwritten by a visitor via /api/settings.
+      - key: GW_PROVIDER
+        value: openai              # openai | azure_openai | anthropic | custom
+      - key: GW_MODEL
+        value: gpt-4o-mini
+      - key: GW_BASE_URL
+        value: https://api.openai.com/v1
+      - key: GW_API_KEY
+        sync: false                # <-- enter the secret in the dashboard
+      # Azure-only extras (uncomment if provider is azure_openai):
+      # - key: GW_API_VERSION
+      #   value: "2024-10-21"
+      # - key: GW_DEPLOYMENT
+      #   value: your-deployment-name
+
+    # ---- OPTIONAL: keep saved requests across deploys/restarts ----
+    # Without a disk, data/ is wiped on every deploy and on free-tier sleep.
+    # A disk pins the SQLite DB + settings.json. Note: attaching a disk disables
+    # zero-downtime deploys, and disks are a paid feature (not on the free plan).
+    # disk:
+    #   name: groundwork-data
+    #   mountPath: /opt/render/project/src/data
+    #   sizeGB: 1

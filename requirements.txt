@@ -1,0 +1,2 @@
+# Optional — only needed for .docx export (Markdown export works without it)
+python-docx>=1.1.0
