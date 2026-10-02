@@ -1,58 +1,64 @@
-# Render Blueprint — deploy from the repo root (the folder containing app.py).
-# In Render: New > Blueprint, point it at your repo. Everything below is created
-# for you. Secrets marked sync:false are entered once in the dashboard and never
-# committed to git.
+# Render Blueprint — New > Blueprint, point it at the repo. Secrets marked sync:false
+# are entered once in the dashboard and never committed.
 services:
   - type: web
     name: groundwork-intake
     runtime: python
-    plan: free                      # 512 MB / 0.1 CPU; sleeps after ~15 min idle
+    plan: free                      # pilot only: free disk is wiped on redeploy and sleep
     buildCommand: pip install -r requirements.txt
-    startCommand: python app.py     # reads $PORT and binds 0.0.0.0 automatically
-    healthCheckPath: /healthz       # open endpoint — not behind the login gate
+    startCommand: python app.py     # binds 0.0.0.0:$PORT
+    healthCheckPath: /healthz       # open endpoint, outside the login gate
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.3"
-      # ---- Login gate ----
-      # Leave GW_APP_PASSWORD unset to use the built-in default password, or set it
-      # here to override. Set it to an empty value to disable the login entirely.
-      - key: GW_APP_PASSWORD
-        sync: false                # enter/override the password in the dashboard
-      - key: GW_SECRET_KEY
-        generateValue: true        # random, persistent session secret
-      # ---- API configuration (env always wins over the Settings UI) ----
-      # Set these in the Render dashboard so the key is never written to the
-      # ephemeral disk and cannot be overwritten by a visitor via /api/settings.
-      - key: GW_PROVIDER
-        value: openai              # openai | azure_openai | anthropic | custom
-      - key: GW_MODEL
-        value: gpt-4o-mini
-      - key: GW_BASE_URL
-        value: https://api.openai.com/v1
-      - key: GW_API_KEY
-        sync: false                # <-- enter the secret in the dashboard
-      # ---- Finance escalation (after 2 guided rounds below the bar) ----
-      # Free Render instances block outbound SMTP, so use "webhook" here
-      # (e.g. a Power Automate HTTP-trigger flow that sends an Outlook email),
-      # or "log" to record alerts in-app with a one-click email link.
-      - key: GW_ALERT_METHOD
-        value: log                 # log | webhook | smtp
-      - key: GW_FINANCE_NAME
+      # ---- Edition: v1 shared password | v2 named accounts | v3 Entra ID SSO ----
+      - key: GW_EDITION
+        value: v1
+      - key: GW_APP_PASSWORD        # v1 password (blank = built-in default)
         sync: false
+      - key: GW_SECRET_KEY          # signs sessions
+        generateValue: true
+      - key: GW_ADMIN_EMAIL         # v2: first admin, created on first boot
+        sync: false
+      - key: GW_ADMIN_PASSWORD
+        sync: false
+      # v3 only — uncomment once the Entra app registration exists
+      # - key: GW_OIDC_ISSUER        # https://login.microsoftonline.com/<tenant-id>/v2.0
+      #   sync: false
+      # - key: GW_OIDC_CLIENT_ID
+      #   sync: false
+      # - key: GW_OIDC_CLIENT_SECRET
+      #   sync: false
+      # - key: GW_BREAKGLASS_EMAIL
+      #   sync: false
+      # - key: GW_ROLE_MAP           # JSON: Entra app role -> {role, division, group}
+      #   sync: false
+      # ---- Text model (rules engine runs without it) ----
+      - key: GW_PROVIDER
+        value: anthropic            # anthropic | openai | azure_openai | custom
+      - key: GW_MODEL
+        value: claude-sonnet-5
+      - key: GW_BASE_URL
+        value: https://api.anthropic.com
+      - key: GW_API_KEY
+        sync: false
+      # ---- Example images (separate image API; off by default) ----
+      - key: GW_IMAGE_PROVIDER
+        value: none                 # none | openai | azure_openai
+      - key: GW_IMAGE_API_KEY
+        sync: false
+      - key: GW_IMAGE_PER_REQUEST
+        value: "4"
+      - key: GW_IMAGE_MONTHLY_CAP
+        value: "40"
+      # ---- Finance escalation (free tier blocks SMTP: use log or webhook) ----
+      - key: GW_ALERT_METHOD
+        value: log
       - key: GW_FINANCE_EMAIL
         sync: false
       - key: GW_ALERT_WEBHOOK_URL
-        sync: false                # secret — the flow URL embeds its own key
-      # Azure-only extras (uncomment if provider is azure_openai):
-      # - key: GW_API_VERSION
-      #   value: "2024-10-21"
-      # - key: GW_DEPLOYMENT
-      #   value: your-deployment-name
-
-    # ---- OPTIONAL: keep saved requests across deploys/restarts ----
-    # Without a disk, data/ is wiped on every deploy and on free-tier sleep.
-    # A disk pins the SQLite DB + settings.json. Note: attaching a disk disables
-    # zero-downtime deploys, and disks are a paid feature (not on the free plan).
+        sync: false
+    # Persistent storage (paid plans) — needed before V2 holds real accounts:
     # disk:
     #   name: groundwork-data
     #   mountPath: /opt/render/project/src/data

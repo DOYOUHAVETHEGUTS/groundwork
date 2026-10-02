@@ -20,179 +20,112 @@ import time
 import agents
 import config
 import llm
+import polish
 import rubric
 
 MAX_ROUNDS = 2
 PER_ROUND = 10
 
-FIELD_LABELS = dict(rubric.SECTIONS + rubric.EXTRA_FIELDS + rubric.FINANCIAL_FIELDS)
-EDITABLE = [k for k, _ in rubric.EXTRA_FIELDS + rubric.SECTIONS + rubric.FINANCIAL_FIELDS]
-FIELD_CATEGORY = {
-    "background": "Current Situation",
-    "proposal": "Proposal", "timing": "Proposal",
-    "justification": "Justification", "operational_impact": "Justification",
-    "affected_groups": "Justification",
-    "risks": "Risks",
-    "alternatives": "Alternatives",
-    **{k: "Financial Case" for k, _ in rubric.FINANCIAL_FIELDS},
-}
-WEIGHTS = {n: w for n, w, _ in rubric.CATEGORIES}
-CATEGORY_NAMES = [n for n, _, _ in rubric.CATEGORIES]
-
-SHORT_FIELDS = {"affected_groups", "timing", "capex", "opex_annual", "benefit_annual",
-                "npv", "mirr", "payback_months"}
-BULLET_FIELDS = {"risks", "alternatives"}
-LABELED_FIELDS = {"assumptions"}
-CALC_MARK = "Groundwork calc"
+FIELD_LABELS = dict(rubric.SECTIONS + [rubric.APPENDIX, ("selection_rationale", "Vendor selection")])
+EDITABLE = [k for k, _ in rubric.SECTIONS] + ["selection_rationale", "appendix"]
+FIELD_CATEGORY = {**{k: lbl for k, lbl in rubric.SECTIONS},
+                  "selection_rationale": "Alternatives", "appendix": "Current Situation"}
+WEIGHTS = rubric.WEIGHTS
+CATEGORY_NAMES = [lbl for _, lbl in rubric.SECTIONS]
+BULLET_FIELDS = {"alternatives", "cost", "appendix"}
+SET_FIELDS = {"selection_rationale"}
 
 
 class CoachError(Exception):
     pass
 
 
+# Guided questions shown at the start of the speaking / writing step.
+INTAKE_GUIDE = [
+    "What is the problem today, in one or two sentences?",
+    "How many do you have, how old are they, and how often do they fail or cause delays? Use numbers.",
+    "Why does the problem happen? Where in the process does the work get stuck?",
+    "What exactly are you asking for: how many, what item, and where does each one go?",
+    "Who quoted it and for how much? Finance requires three vendor quotes.",
+    "Which vendor would you pick, and why is it the best value overall, not just the cheapest?",
+    "What other options did you consider (repair, lease, phase), and why not those?",
+    "What gets better, in numbers, if this is approved?",
+    "Is this facility or building work driven by Corporate Real Estate?",
+]
+
+
 # --------------------------------------------------------------------------- bank
-def _q(id, cat, field, q, why, ex, lead="", prio=0):
-    return {"id": id, "category": cat, "field": field, "question": q, "why": why,
-            "example": ex, "lead": lead, "prio": prio}
+def _q(id, cat, field, q, why, ex, prio=0):
+    return {"id": id, "category": cat, "field": field, "question": q, "why": why, "example": ex, "prio": prio}
 
 
+CS, PR, CO, JU, AL = CATEGORY_NAMES
 BANK = [
-    # Current Situation
-    _q("cs_age", "Current Situation", "background",
-       "How old is what you have today, and how hard has it been used? Give the year or age plus miles, hours, cycles or volume.",
-       "Numbers make the current situation credible instead of anecdotal.",
-       "2011 model, 96,000 miles, used every shift"),
-    _q("cs_failures", "Current Situation", "background",
-       "How many times has it failed or caused a problem in the last 12 months? A count is ideal.",
-       "Failure frequency is the clearest evidence of the cost of doing nothing.",
-       "5 breakdowns in 12 months, 11 days out of service"),
-    _q("cs_downtime", "Current Situation", "background",
-       "When it's down, what does the team do instead, and how much extra time does that take?",
-       "Workarounds show the hidden cost Finance can't see.",
-       "We borrow equipment from another team; adds ~30 min per job"),
-    _q("cs_spend", "Current Situation", "background",
-       "What did you spend in the last 12 months keeping it running — repairs, parts, rentals, workarounds?",
-       "Current spend is the baseline your savings are measured against.",
-       "$3,100 in repairs plus a 2-week rental"),
-    _q("cs_volume", "Current Situation", "background",
-       "How much work depends on it — trips, jobs, shipments or pounds per day or week?",
-       "Volume shows how many operations the problem touches.",
-       "About 40 runs a week across 2 shifts"),
-    # Proposal
-    _q("pr_spec", "Proposal", "proposal",
-       "Exactly what are you asking to buy or change — make/model, quantity, and what's included?",
-       "A specific scope is easier to approve and to price.",
-       "Two handheld scanners with chargers and 3-year support"),
-    _q("pr_vendor", "Proposal", "proposal",
-       "Who is the vendor or contract vehicle, and do you have a dated quote?",
-       "A named source and dated quote make the cost verifiable.",
-       "Corporate fleet contract, quote dated 2/10"),
-    _q("pr_date", "Proposal", "timing",
-       "When does this need to be in service, and what's driving that date?",
-       "Approvers need to know why now and what slips if it waits.",
-       "By Oct 1 — ahead of peak season"),
-    _q("pr_scope", "Proposal", "proposal",
-       "What is explicitly out of scope for this request?",
-       "Stating what's excluded prevents scope creep questions later.",
-       "Installation labor and disposal handled separately"),
-    _q("pr_rollout", "Proposal", "proposal",
-       "Who will receive, set up and support it, and how long until it's usable?",
-       "An owner and timeline show the plan is real.",
-       "Vendor delivers in 6 weeks; our lead tech sets it up in a day"),
-    # Financial Case — inputs first; Groundwork computes NPV/MIRR/payback from them
-    _q("fin_capex", "Financial Case", "capex",
-       "What's the total one-time cost, including tax, delivery and setup? Lead with the total.",
-       "The one-time cost anchors every financial metric.",
-       "$18,500 all-in per the vendor quote"),
-    _q("fin_benefit", "Financial Case", "benefit_annual",
-       "What does this save or earn per year? Lead with the yearly dollar total, then the breakdown.",
-       "Annual benefit is what turns a price into an investment case.",
-       "$9,000/yr — $3,000 repairs avoided + $6,000 in staff time"),
-    _q("fin_opex", "Financial Case", "opex_annual",
-       "What will it cost each year to run — maintenance, fuel, licenses, insurance, support?",
-       "Recurring cost is netted against the benefit.",
-       "$1,200/yr maintenance and licenses"),
-    _q("fin_life", "Financial Case", "assumptions",
-       "How many years will it be in service before it needs replacing?",
-       "Useful life sets the horizon for NPV and payback.",
-       "6 years", lead="Useful life"),
-    _q("fin_benefit_alt", "Financial Case", "benefit_annual",
-       "If this were approved tomorrow, what would you stop paying for each year? Lead with the dollar total.",
-       "Avoided spend is a benefit Finance can verify.",
-       "$5,000/yr in rentals and overtime"),
-    _q("fin_residual", "Financial Case", "assumptions",
-       "Is there any trade-in, salvage or resale value for what's being replaced?",
-       "Recovered value offsets the one-time cost.",
-       "About $1,000 trade-in", lead="Salvage / trade-in"),
-    _q("fin_budget", "Financial Case", "assumptions",
-       "Is this in the current capital plan? Which cost center or budget line funds it?",
-       "Funding source tells Finance whether this is planned or new spend.",
-       "In the 2026 capital plan, cost center 1234", lead="Funding"),
-    _q("fin_npv", "Financial Case", "npv",
-       "If Finance has already run an NPV at 20% for this, what was it? (Skip if not — Groundwork calculates it.)",
-       "An existing Finance NPV overrides the Groundwork estimate.",
-       "$12,400 per Finance model", prio=-1),
-    _q("fin_payback", "Financial Case", "payback_months",
-       "Has anyone already estimated the payback period? (Skip if not — Groundwork calculates it.)",
-       "An agreed payback figure avoids rework in review.",
-       "About 30 months", prio=-1),
-    # Justification
-    _q("ju_outcome", "Justification", "justification",
-       "What business result improves if this is approved — cost, safety, revenue, capacity or on-time performance — and by roughly how much?",
-       "Justification ties the spend to an outcome, not just a condition.",
-       "Removes delays that hold up ~3 turns a week"),
-    _q("ju_hours", "Justification", "operational_impact",
-       "How many labor hours a week does this save or free up, and across how many people?",
-       "Hours and headcount make the operational impact concrete.",
-       "~5 hours a week across 3 agents"),
-    _q("ju_people", "Justification", "affected_groups",
-       "Which teams, stations or shifts are affected, and about how many people?",
-       "Approvers weigh who benefits and who is exposed.",
-       "DFW cargo ops, 12 agents across 2 shifts"),
-    _q("ju_safety", "Justification", "justification",
-       "Is there a safety, compliance or audit concern with the current setup? Any incidents?",
-       "Safety and compliance exposure can outweigh the dollars.",
-       "One reportable incident last year tied to the old unit"),
-    _q("ju_service", "Justification", "operational_impact",
-       "Does the current problem affect customers or service — turn times, missed connections, claims?",
-       "Customer impact connects the request to revenue.",
-       "Two missed connections last quarter traced to it"),
-    # Risks
-    _q("rk_top", "Risks", "risks",
-       "What's the biggest thing that could go wrong with this purchase or rollout, and what will you do to prevent it?",
-       "Each risk needs a paired mitigation to score well.",
-       "Vendor delay — we will lock the delivery date in the contract", lead="Delivery / rollout"),
-    _q("rk_delay", "Risks", "risks",
-       "If delivery or setup runs late, what's the fallback plan?",
-       "A fallback shows the operation stays covered.",
-       "We will rent a unit month-to-month until it arrives", lead="Late delivery"),
-    _q("rk_notdone", "Risks", "risks",
-       "What happens if this is NOT approved — what breaks, and when?",
-       "The risk of inaction is often the strongest argument.",
-       "Unit likely fails during peak; we would pay rentals and overtime", lead="If not approved"),
-    _q("rk_support", "Risks", "risks",
-       "What warranty, SLA or support contract protects this investment?",
-       "Contractual protection is a mitigation approvers look for.",
-       "3-year warranty and a vendor SLA", lead="Warranty / support"),
-    # Alternatives
-    _q("al_repair", "Alternatives", "alternatives",
-       "Did you consider repairing or refurbishing what you have? Why isn't that the right answer?",
-       "Approvers always ask why you can't fix the current one.",
-       "Repair quoted at $4,000 but doesn't fix the root problem", lead="Repair / refurbish"),
-    _q("al_other", "Alternatives", "alternatives",
-       "What other product, vendor or approach did you look at, and why wasn't it chosen?",
-       "Showing the options you rejected proves the choice was deliberate.",
-       "Larger model considered but costs more and won't fit", lead="Other option"),
-    _q("al_lease", "Alternatives", "alternatives",
-       "Did you consider leasing, renting or borrowing from another station? Why not?",
-       "Lease-vs-buy is a standard Finance question.",
-       "Leasing costs more over the useful life", lead="Lease / rent / share"),
-    _q("al_nothing", "Alternatives", "alternatives",
-       "What's the case against simply doing nothing for another year?",
-       "The do-nothing option must be explicitly rejected.",
-       "Repairs and downtime already cost more than the payment", lead="Do nothing"),
+    _q("cs_count", CS, "current_situation", "How many of these do you have today, and how many are actually available on a typical day?",
+       "A count and an availability rate turn \"limited\" into something Finance can size.", "6 units; 2 typically down"),
+    _q("cs_age", CS, "current_situation", "How old is what you have, and how hard is it used (miles, hours, cycles, shifts)?",
+       "Age and usage show whether this is wear-out or misuse.", "2011 model, 96,000 miles, every shift"),
+    _q("cs_failures", CS, "current_situation", "How many failures, breakdowns or delays did this cause in the last 12 months?",
+       "Failure frequency is the clearest evidence of the cost of doing nothing.", "5 breakdowns, 11 days out of service"),
+    _q("cs_mechanism", CS, "current_situation", "Walk through the process: where exactly does the work get stuck, and why does it happen there?",
+       "Finance funds fixes to causes, not symptoms.", "Every shipment ties up a stand, so the next removal waits"),
+    _q("cs_workaround", CS, "current_situation", "When it's unavailable, what does the team do instead, and how much time does that add each time?",
+       "Workarounds are the hidden cost Finance can't see.", "Borrow from another team; ~45 minutes per job"),
+    _q("cs_spend", CS, "current_situation", "What did keeping the current setup running cost in the last 12 months (repairs, rentals, overtime)?",
+       "Current spend is the baseline the benefit is measured against.", "$4,200 in repairs plus a 3-week rental"),
+    _q("ap_evidence", CS, "appendix", "What evidence can you attach: quote letters, photos, incident logs, utilization reports? List each with its date.",
+       "Claims backed by exhibits survive review; unsupported claims don't.", "Quote letters dated 3/10–3/14; repair log FY25"),
+    _q("pr_scope", PR, "proposal", "Exactly what are you buying: quantity, item or model class, and where each one goes?",
+       "A defined scope is easier to approve and harder to inflate.", "One compact crew-cab pickup for the BOS shop"),
+    _q("pr_single", PR, "proposal", "If Finance could approve only one thing in this request, what is it?",
+       "Anything else belongs in its own five point; bundled asks get sent back.", "The replacement truck only"),
+    _q("pr_date", PR, "proposal", "When must this be in service, and what lead time drives that date?",
+       "Approvers need to know why now and what slips if it waits.", "By Nov 1; 6-week delivery"),
+    _q("pr_constraints", PR, "proposal", "Are there sourcing rules, contract terms or install requirements that limit how this is bought or installed?",
+       "Constraints change what Finance can approve.", "Must buy through the corporate fleet contract"),
+    _q("co_items", CO, "cost", "List each cost line as quantity × unit cost (equipment, labor, freight, tax, install), separated by semicolons.",
+       "Line items are what Finance checks and negotiates.", "Pickup 1 × $27,858; upfit 1 × $1,840; delivery 1 × $650"),
+    _q("co_contingency", CO, "cost", "What contingency are you including (percent and dollars), and what is the all-in total?",
+       "A stated contingency prevents a second request for overruns.", "5% contingency, $1,517; total $31,865"),
+    _q("co_funding", CO, "cost", "How is this funded: capital plan line, cost center, credits or a new request?",
+       "Finance has to know whether this is planned money.", "2026 capital plan, cost center 4410"),
+    _q("ju_recommend", JU, "justification", "In one sentence, what do you recommend Finance approve, and at what amount?",
+       "The committee needs the decision stated, not implied.", "We recommend Vendor B at $31,865"),
+    _q("ju_benefit", JU, "justification", "What will be measurably better once this is done: delay days, hours, failures or dollars per year?",
+       "A benefit in numbers can be weighed against the cost.", "Saves ~6 hours a week; ends ~19 down-days a year"),
+    _q("ju_tie", JU, "justification", "Using your current numbers, what changes? For example: 19 days out of service becomes 2.",
+       "Closing the loop on the baseline is what makes the case.", "7 breakdowns a year → under 1"),
+    _q("ju_risk", JU, "justification", "What is the biggest risk in delivering this, and how will you manage it?",
+       "Implementation risk is the first thing reviewers probe.", "Delivery slip; we will lock the date in the contract"),
+    _q("ju_assume", JU, "justification", "What assumptions are your numbers built on (lead times, prices, volumes, useful life)?",
+       "Stated assumptions let Finance test the numbers.", "7-year life; current repair rate continues"),
+    _q("al_options", AL, "alternatives", "What other ways could you solve this (repair, lease, rent, phase, share), and why aren't they better?",
+       "Real alternatives prove the choice was deliberate.", "Leasing costs more over 7 years because …"),
+    _q("al_repair", AL, "alternatives", "Why isn't repairing or refurbishing what you have the right answer?",
+       "\"Why can't you fix it?\" is always asked.", "Repair quoted at $6,000 and doesn't fix the root cause"),
+    _q("al_compare", AL, "alternatives", "How do the options compare on total cost, lead time and what's included?",
+       "A side-by-side shows why one option wins.", "A: $28,550, 14 wks, no upfit; B: $30,348, 6 wks"),
 ]
 BANK_BY_ID = {q["id"]: q for q in BANK}
+
+
+def _selection_question(req):
+    vq = rubric.valid_quotes(req)
+    names = ", ".join(q["vendor"] for q in vq[:-1]) + f" and {vq[-1]['vendor']}"
+    return _q("sel_vendor", AL, "selection_rationale",
+              f"You have quotes from {names}. Which one are you selecting, and why is it the best choice all-in: "
+              "price, scope covered, lead time, warranty, support, compliance?",
+              "The best quote isn't always the cheapest. Finance needs the reasoning.",
+              "Vendor B: not the lowest price, but the only full-scope quote and 8 weeks faster")
+
+
+def required_actions(req):
+    out = []
+    for g in rubric.gates(req):
+        if not g["passed"]:
+            out.append({"id": g["id"], "label": g["label"], "message": g["message"], "severity": g["severity"],
+                        "action": "quotes" if g["id"] == "three_quotes" else "cre"})
+    return out
 
 
 def _public(q):
@@ -219,15 +152,12 @@ def is_non_answer(a: str) -> bool:
 
 def _merge_rules(cur: str, answer: str, field: str, lead: str = "") -> str:
     cur, ans = (cur or "").strip(), answer.strip()
+    if field in SET_FIELDS:
+        return f"{cur} {ans}".strip() if cur else ans
     if field in BULLET_FIELDS:
-        line = f"- {lead}: {ans}" if lead else f"- {ans}"
-        return f"{cur}\n{line}" if cur else line
-    if field in LABELED_FIELDS:
-        ans = ans.rstrip(" .;")
-        piece = f"{lead}: {ans}" if lead else ans
-        return f"{cur}; {piece}" if cur else piece
-    if field in SHORT_FIELDS:
-        return f"{cur} · {ans}" if cur else ans
+        parts = [p.strip() for p in (re.split(r";\s*|\n", ans) if field == "cost" else [ans]) if p.strip()]
+        lines = "\n".join(f"- {p}" for p in parts)
+        return f"{cur}\n{lines}" if cur else lines
     if ans[-1:] not in ".!?":
         ans += "."
     if cur and cur[-1:] not in ".!?":
@@ -235,67 +165,20 @@ def _merge_rules(cur: str, answer: str, field: str, lead: str = "") -> str:
     return f"{cur} {ans}" if cur else ans
 
 
-# --------------------------------------------------------------------------- finance math
-MONEY = re.compile(r"\$\s?(\d[\d,]*(?:\.\d+)?)\s*(k|mm|m|million|thousand)?\b", re.I)
-
-
-def parse_money(t):
-    m = MONEY.search(str(t or ""))
-    if not m:
-        return None
-    v = float(m.group(1).replace(",", ""))
-    suf = (m.group(2) or "").lower()
-    if suf in ("k", "thousand"):
-        v *= 1e3
-    elif suf in ("m", "mm", "million"):
-        v *= 1e6
-    return v
-
-
-def _life(req):
-    txt = str(req.get("assumptions") or "")
-    m = (re.search(r"useful life[^0-9]{0,25}(\d{1,2})", txt, re.I)
-         or re.search(r"\b(\d{1,2})\s*-?\s*(?:years?|yrs?)\b", txt, re.I))
-    return (max(1, min(int(m.group(1)), 15)), True) if m else (5, False)
-
-
-def _is_calc(v):
-    return not str(v or "").strip() or CALC_MARK in str(v)
-
-
-def apply_finance_calc(req: dict) -> dict:
-    """Derive NPV @20%, 5-yr-style MIRR and payback from stated inputs. Only fills
-    fields that are empty or were previously Groundwork-calculated."""
-    capex, benefit = parse_money(req.get("capex")), parse_money(req.get("benefit_annual"))
-    if not capex or not benefit:
-        return {}
-    opex_v = parse_money(req.get("opex_annual"))
-    opex = opex_v or 0.0
-    n, life_stated = _life(req)
-    r, net = 0.20, benefit - opex
-    npv = -capex + sum(net / (1 + r) ** t for t in range(1, n + 1))
-    fv = sum(net * (1 + r) ** (n - t) for t in range(1, n + 1))
-    mirr = (fv / capex) ** (1 / n) - 1 if fv > 0 else None
-    payback = capex / (net / 12) if net > 0 else None
-    out = {"npv": npv, "mirr": mirr, "payback_months": payback, "years": n,
-           "net_annual": net, "capex": capex, "benefit": benefit, "opex": opex}
-
-    tag = f"({CALC_MARK} — confirm with Finance)"
-    if _is_calc(req.get("npv")):
-        req["npv"] = f"{'-' if npv < 0 else ''}${abs(npv):,.0f} {tag}"
-    if _is_calc(req.get("mirr")):
-        req["mirr"] = f"{mirr * 100:.1f}% over {n} yrs {tag}" if mirr is not None else f"n/a — no positive return {tag}"
-    if _is_calc(req.get("payback_months")):
-        req["payback_months"] = (f"{payback:.0f} {tag}" if payback and payback <= n * 12
-                                 else f"Not reached within {n}-year life {tag}")
-    line = (f"{CALC_MARK}ulation: {n}-year life{'' if life_stated else ' (assumed — not stated)'}, "
-            f"20% discount and reinvestment rate, net annual benefit ${net:,.0f} "
-            f"(benefit ${benefit:,.0f} less recurring ${opex:,.0f}"
-            f"{'' if opex_v else ', recurring cost not stated so assumed $0'}); confirm with Finance")
-    a = str(req.get("assumptions") or "")
-    a = re.sub(rf";?\s*{CALC_MARK}ulation:[^;]*(;|$)", "", a).strip(" ;")
-    req["assumptions"] = f"{a}; {line}" if a else line
-    return out
+def _post_merge(req, answers_by_field):
+    """Structured side effects of answers: selected vendor, contingency %."""
+    sel = answers_by_field.get("selection_rationale")
+    if sel:
+        vq = rubric.valid_quotes(req)
+        hit = min(((sel.lower().find(q["vendor"].lower()), q) for q in vq if q["vendor"].lower() in sel.lower()),
+                  key=lambda x: x[0], default=(None, None))[1]
+        if hit:
+            for q in req.get("quotes") or []:
+                q["selected"] = q is hit
+    if not str(req.get("contingency_pct") or "").strip():
+        m = re.search(r"(\d+(?:\.\d+)?)\s*%\s*contingency|contingency\D{0,20}?(\d+(?:\.\d+)?)\s*%", req.get("cost") or "", re.I)
+        if m:
+            req["contingency_pct"] = m.group(1) or m.group(2)
 
 
 # --------------------------------------------------------------------------- selection
@@ -326,23 +209,16 @@ def allocate(qual, n=PER_ROUND, capacity=None):
 
 
 def _candidates(req, asked_ids):
-    capex_known = bool(parse_money(req.get("capex")))
     out = {c: [] for c in CATEGORY_NAMES}
     for q in BANK:
         if q["id"] in asked_ids:
             continue
-        f = q["field"]
-        filled = bool(str(req.get(f) or "").strip())
-        if q["id"] == "fin_capex" and capex_known:
-            continue
-        if f in ("npv", "payback_months", "opex_annual", "benefit_annual") and filled and not _is_calc(req.get(f)):
-            continue
-        rank = (q["prio"], 0 if not filled or f in BULLET_FIELDS | LABELED_FIELDS else -1)
+        filled = bool(str(req.get(q["field"]) or "").strip())
+        rank = (q["prio"], 0 if not filled or q["field"] in BULLET_FIELDS else -1)
         out[q["category"]].append((rank, q))
     for c in out:
         out[c] = [q for _, q in sorted(out[c], key=lambda x: (-x[0][0], -x[0][1]))]
     return out
-
 
 def _rules_questions(req, qual, prior_ids, n=PER_ROUND):
     cands = _candidates(req, prior_ids)
@@ -362,8 +238,8 @@ def _too_similar(t, prior_texts):
     return any(a and (len(a & b) / max(1, len(a | b))) > 0.55 for b in map(_norm, prior_texts))
 
 
-QUESTION_SYSTEM = f"""You coach an airline business-unit employee (not a finance
-professional) to strengthen a capital request before it reaches Finance.
+QUESTION_SYSTEM = f"""You coach a business-unit employee (not a finance professional) to
+strengthen a five-point capital request before it reaches Finance.
 
 {agents.STANDARD}
 
@@ -372,21 +248,22 @@ counts, dates, ages, quotes, hours, headcount, incidents, options they considere
 
 Rules:
 - Follow the category allocation you are given; it targets the points at stake.
-- Never ask them to calculate NPV, MIRR or payback — Groundwork calculates those.
-  Ask for the inputs instead: total one-time cost, annual recurring cost, annual
-  savings or revenue as a dollar total, and useful life in years.
+- Never ask about NPV, IRR or payback; Finance prepares those.
 - One fact per question, plain language, under 30 words, no finance jargon.
-- Never repeat or rephrase a previously asked question, and do not ask for
-  anything already clearly stated in the draft.
+- Never repeat or rephrase a previously asked question, and don't ask for anything
+  already clearly stated in the draft.
 - "field" is where the answer belongs: one of {", ".join(EDITABLE)}.
 - "category" is one of: {", ".join(CATEGORY_NAMES)}.
 - "why": one short sentence on how the answer strengthens the request.
-- "example": a short sample answer showing the format (not a claim about this request).
+- "example": a short sample answer showing the format.
+{agents.STYLE}
 
 Return JSON only: {{"questions":[{{"category":"","field":"","question":"","why":"","example":""}}]}}"""
 
 
 def _model_questions(req, qual, prior, round_no, n=PER_ROUND):
+    if n <= 0:
+        return []
     alloc = allocate(qual, n)
     user = json.dumps({
         "questions_needed": n,
@@ -410,7 +287,7 @@ def _model_questions(req, qual, prior, round_no, n=PER_ROUND):
         seen.append(text)
         out.append({"id": f"m{round_no}_{len(out) + 1}", "category": cat, "field": field,
                     "question": text[:300], "why": str(q.get("why", ""))[:200],
-                    "example": str(q.get("example", ""))[:160], "lead": "", "prio": 0})
+                    "example": str(q.get("example", ""))[:160], "prio": 0})
         if len(out) >= n:
             break
     return out
@@ -418,53 +295,51 @@ def _model_questions(req, qual, prior, round_no, n=PER_ROUND):
 
 def generate_questions(req, qual, prior, round_no):
     prior_ids = {q["id"] for q in prior}
-    engine, err = "rules", ""
-    qs = []
+    engine, err, qs = "rules", "", []
+    # The vendor-selection question is mandatory once three quotes exist and no reason is given.
+    if len(rubric.valid_quotes(req)) >= 3 and rubric.words(req.get("selection_rationale")) < 10 \
+            and "sel_vendor" not in prior_ids:
+        qs.append(_selection_question(req))
     if agents.use_model(req):
         try:
-            qs = _model_questions(req, qual, prior, round_no)
+            qs += _model_questions(req, qual, prior + qs, round_no, PER_ROUND - len(qs))
             engine = "model:" + str(config.load().get("model"))
         except (llm.LLMError, ValueError, KeyError, TypeError) as e:
             engine, err = "rules (model unavailable)", str(e)[:300]
-    if len(qs) < PER_ROUND:   # top up (or fully supply) from the bank, never repeating
+    if len(qs) < PER_ROUND:
         texts = [q["question"] for q in prior + qs]
         taken = prior_ids | {q["id"] for q in qs}
         need = PER_ROUND - len(qs)
-        # The first `need` follow the points-at-stake allocation; the rest are spares
-        # used only if a primary pick is too close to a model-written question.
         primary = _rules_questions(req, qual, taken, need)
-        spares = [q for q in _rules_questions(req, qual, taken, PER_ROUND * 3)
-                  if q["id"] not in {p["id"] for p in primary}]
+        spares = [q for q in _rules_questions(req, qual, taken, PER_ROUND * 3) if q["id"] not in {p["id"] for p in primary}]
         for q in primary + spares:
             if len(qs) >= PER_ROUND:
                 break
             if not _too_similar(q["question"], texts):
                 qs.append(dict(q))
                 texts.append(q["question"])
-        qs.sort(key=lambda q: CATEGORY_NAMES.index(q["category"])
-                if q["category"] in CATEGORY_NAMES else 99)   # five-point order for display
-        if engine.startswith("model") and len(qs) and any(q["id"] in BANK_BY_ID for q in qs):
+        if engine.startswith("model") and any(q["id"] in BANK_BY_ID for q in qs):
             engine += " + question bank"
-    return qs[:PER_ROUND], engine, err
-
+    qs = qs[:PER_ROUND]
+    qs.sort(key=lambda q: CATEGORY_NAMES.index(q["category"]) if q["category"] in CATEGORY_NAMES else 99)
+    return qs, engine, err
 
 # --------------------------------------------------------------------------- merge
-MERGE_SYSTEM = """You update a capital request draft with the requester's answers to
+MERGE_SYSTEM = f"""You update a five-point capital request draft with the requester's answers to
 guided questions. You are a drafting assistant, not an approver.
+
+{agents.STANDARD}
 
 Rules:
 - Integrate each answer into the field it targets (or a clearly better-fitting field).
-- Keep every existing fact. You may tighten wording but never drop numbers, names or dates.
-- Use ONLY facts already in the draft or in the answers. Never invent numbers, vendors,
-  dates, savings or headcount.
-- Risks: pair each risk with its mitigation when the answer gives one.
-- Alternatives: state why each option was not selected when the answer gives a reason.
-- capex, opex_annual and benefit_annual are short values that lead with the dollar
-  figure, e.g. "$11,400 per year — repairs avoided plus technician time".
-- Leave npv, mirr and payback_months unchanged unless an answer states them directly.
-- Plain business English, third person, no marketing language.
+- Keep every existing fact. Tighten wording, but never drop numbers, names or dates.
+- Use ONLY facts already in the draft or in the answers. Never invent anything.
+- Cost: one line item per line, "- description: qty × $unit". Keep the stated total.
+- Alternatives: each option with its cost and why it was not chosen.
+- selection_rationale: which vendor and the all-in reasons, in two or three sentences.
+{agents.STYLE}
 
-Return JSON only: {"updated": {"<field>": "<complete new text for that field>"}}
+Return JSON only: {{"updated": {{"<field>": "<complete new text for that field>"}}}}
 Include only fields you changed."""
 
 
@@ -477,7 +352,7 @@ def _merge(req, usable):
 
     def rules_all(items):
         for q, a in items:
-            work[q["field"]] = _merge_rules(work[q["field"]], a, q["field"], q.get("lead", ""))
+            work[q["field"]] = _merge_rules(work[q["field"]], a, q["field"])
 
     if agents.use_model(req) and usable:
         try:
@@ -520,7 +395,7 @@ def compute_edits(before, after, q_before, q_after, sources=None):
                       "category": FIELD_CATEGORY.get(f), "kind": kind,
                       "before": b, "after": a, "added": added,
                       "words_added": len(added.split()),
-                      "calculated": CALC_MARK in a and CALC_MARK not in b,
+                      "calculated": False,
                       "from_questions": (sources or {}).get(f, [])})
     # Attribution: each category's real gain is split by each field's marginal
     # contribution — re-score with just that field reverted and see what it was
@@ -578,7 +453,7 @@ def start_round(req: dict) -> dict:
     if not qs:
         raise CoachError("No new questions are left to ask — edit the draft directly.")
     rounds.append({"round": n, "created": time.time(), "engine": engine, "engine_error": err,
-                   "questions": [_public(q) | {"lead": q.get("lead", "")} for q in qs],
+                   "questions": [_public(q) for q in qs], "required_actions": required_actions(req),
                    "answered": False, "score_before": qual["overall"],
                    "categories_before": _cats(qual)})
     co["status"] = f"round{n}_questions"
@@ -603,15 +478,13 @@ def submit_answers(req: dict, answers: dict, notifier=None) -> dict:
     q_before = req.get("qualification") or agents.qualify(req)
     merged, m_engine, m_err, sources = _merge(req, usable)
     req.update(merged)
-    calc = apply_finance_calc(req)
-    for k in ("npv", "mirr", "payback_months", "assumptions"):
-        if req.get(k) != before.get(k) and CALC_MARK in str(req.get(k)):
-            sources.setdefault(k, [])
+    _post_merge(req, {q["field"]: a for q, a in usable})
+    polish.polish_request(req)
     q_after = agents.qualify(req)
     req["qualification"], req["score"], req["status"] = q_after, q_after["overall"], q_after["status"]
 
     threshold = _threshold()
-    passed = q_after["overall"] >= threshold
+    passed = q_after["overall"] >= threshold and not q_after.get("blocked")
     rnd.update({
         "answered": True, "submitted": time.time(), "answers": answers,
         "answered_count": len(given), "usable_count": len(usable),
@@ -621,7 +494,7 @@ def submit_answers(req: dict, answers: dict, notifier=None) -> dict:
         "score_after": q_after["overall"], "categories_after": _cats(q_after),
         "edits": compute_edits(before, req, q_before, q_after, sources),
         "merge_engine": m_engine, "merge_error": m_err,
-        "finance_calc": {k: (round(v, 4) if isinstance(v, float) else v) for k, v in calc.items()},
+        "blocked": q_after.get("blocked", False), "required_actions": required_actions(req),
         "passed": passed, "threshold": threshold,
     })
     if passed:
@@ -641,86 +514,95 @@ DEMO_TEXT = (
     "Facilities in BOS runs a 2007 Chrysler Town and Country with 140,761 miles for tool and "
     "personnel transport. The fuel gauge needle falls off so we cannot tell fuel level, there is "
     "exterior rust and the seating and carpeting are unserviceable. It was never designed as a "
-    "maintenance vehicle. We have a fleet contract quote for a crew cab pickup at $30,348 total. "
-    "A smaller truck maneuvers better in ramp congestion. Alternatives are a Ford Ranger or Chevy Colorado.")
+    "maintenance vehicle. We want to replace it with a compact crew cab pickup. We have a fleet contract "
+    "quote for a crew cab pickup at $30,348 total. A smaller truck maneuvers better in ramp congestion. "
+    "Alternatives are a Ford Ranger or Chevy Colorado.")
+
+
+def _items(*rows):
+    return [{"desc": d, "qty": q, "unit": u} for d, q, u in rows]
+
+
+DEMO_QUOTES = [
+    {"vendor": "Fleet Partner A", "date": "2026-03-10", "lead_time": "14 weeks", "warranty": "3 yr / 36,000 mi",
+     "notes": "Excludes bed cap and toolbox upfit.",
+     "items": _items(("Compact crew-cab pickup", 1, 27900), ("Delivery and registration", 1, 650))},
+    {"vendor": "Fleet Partner B", "date": "2026-03-14", "lead_time": "6 weeks",
+     "warranty": "3 yr / 36,000 mi plus fleet maintenance SLA", "notes": "",
+     "items": _items(("Compact crew-cab pickup", 1, 27858), ("Bed cap and toolbox upfit", 1, 1840),
+                     ("Delivery and registration", 1, 650))},
+    {"vendor": "Fleet Partner C", "date": "2026-03-12", "lead_time": "10 weeks", "warranty": "3 yr / 36,000 mi",
+     "notes": "", "items": _items(("Compact crew-cab pickup", 1, 30400), ("Bed cap and toolbox upfit", 1, 1950),
+                                  ("Delivery and registration", 1, 900))},
+]
 
 DEMO_SCENARIOS = {
     "pass": {"label": "Passes after round 1",
-             "blurb": "The requester answers all 10 questions with specifics and clears the bar in one round."},
+             "blurb": "Three itemized quotes are on file. The requester answers all 10 questions with specifics and clears the bar."},
     "second": {"label": "Needs the second chance",
-               "blurb": "Round 1 fills in the story but dodges the money questions. Round 2 asks new ones and it passes."},
-    "escalate": {"label": "Escalates to Finance",
-                 "blurb": "Vague answers in both rounds leave it below the bar, so the finance partner is alerted."},
+               "blurb": "Round 1 fills in the story but dodges cost and benefit. Round 2 asks new questions and it passes."},
+    "escalate": {"label": "Blocked, escalates to Finance",
+                 "blurb": "Only one vendor quote and vague answers. The hard barrier holds through both rounds, so Finance is alerted."},
 }
 
+
+def demo_seed(scenario):
+    import copy
+    quotes = copy.deepcopy(DEMO_QUOTES if scenario != "escalate" else [DEMO_QUOTES[1]])
+    return {"quotes": quotes, "cre_driven": "no",
+            "cost_items": copy.deepcopy(DEMO_QUOTES[1]["items"]), "contingency_pct": ""}
+
+
 DEMO_STRONG = {
+    "cs_count": "We have one shop vehicle for tool and parts runs; there is no spare, so when it is down we have none.",
     "cs_age": "The van is a 2007 Chrysler Town & Country with 140,761 miles; it runs about 6 days a week across all three shifts.",
-    "cs_failures": "It has broken down 7 times in the last 12 months and was out of service 19 days in total.",
-    "cs_downtime": "When it's down we borrow a tug from ramp or walk tools out, which adds about 45 minutes per job.",
+    "cs_failures": "It broke down 7 times in the last 12 months and was out of service 19 days in total.",
+    "cs_mechanism": "Every tool run starts at the shop and ends at the aircraft; with the van down, the mechanic walks tools out or waits for a tug, so the repair starts late and the turn slips.",
+    "cs_workaround": "When it's down we borrow a tug from ramp or walk tools out, which adds about 45 minutes per job.",
     "cs_spend": "We spent $4,200 on repairs in the last 12 months, including a 3-week rental.",
-    "cs_volume": "It makes about 25 tool and parts runs per week between the shop and the ramp.",
-    "pr_spec": "One compact crew-cab pickup (Ford Ranger class) with a locking bed cap and toolbox, replacing van #22991.",
-    "pr_vendor": "Purchased through the corporate fleet contract; the quote is dated 3/14/2026 at $30,348 all-in.",
-    "pr_date": "In service by November 1, 2026 — ahead of winter ops and holiday peak, when a breakdown hurts most.",
-    "pr_scope": "Out of scope: upfitting beyond the toolbox, and disposal of the old van, which Fleet handles separately.",
-    "pr_rollout": "Fleet delivers in about 8 weeks; our lead mechanic handles setup and ramp credentialing in 2 days.",
-    "fin_capex": "$30,348 all-in per the fleet contract quote, including tax and delivery.",
-    "fin_benefit": "$11,400 per year — $4,200 in repairs and rentals avoided plus about $7,200 in recovered technician time (6 hrs/week at a $23/hr loaded rate).",
-    "fin_opex": "$1,800 per year for maintenance and insurance under the fleet program.",
-    "fin_life": "7 years.",
-    "fin_benefit_alt": "$11,400 per year — we'd stop paying about $4,200 in repairs and rentals and recover roughly $7,200 in technician time.",
-    "fin_residual": "About $1,500 in salvage value for the old van.",
-    "fin_budget": "It's in the 2026 Cargo Facilities capital plan under cost center 4410.",
-    "fin_npv": "",
-    "fin_payback": "",
-    "ju_outcome": "It removes tool-run delays that currently hold up about 3 aircraft turns a week and ends the fuel run-outs on the airfield.",
-    "ju_hours": "About 6 hours a week across 4 mechanics — time now lost to breakdowns and workarounds.",
-    "ju_people": "BOS Cargo Facilities — 4 mechanics and 1 supervisor across 3 shifts.",
-    "ju_safety": "Yes — the broken fuel gauge caused 2 run-outs on the airfield this year, which is a ramp safety issue.",
-    "ju_service": "Two delayed ULD builds last quarter were traced to the van being down.",
-    "rk_top": "Delivery could slip past November; we will mitigate by ordering this month and fixing the delivery date in the fleet contract.",
-    "rk_delay": "If it arrives late, we will keep a short-term rental under contract rather than run the old van on the AOA.",
-    "rk_notdone": "The van will keep failing, likely during peak, and we will be paying for rentals and overtime while it's down.",
-    "rk_support": "A 3-year/36,000-mile manufacturer warranty plus the fleet program's maintenance SLA.",
-    "al_repair": "Repair was considered but rejected because it would cost about $6,000 and still leave a 19-year-old vehicle never built for maintenance work.",
-    "al_other": "A full-size pickup was considered, but it's more expensive and harder to maneuver in ramp congestion, so the compact truck was chosen.",
-    "al_lease": "Leasing was considered; however, the fleet purchase is cheaper over 7 years and we use it daily, so renting doesn't pay off.",
-    "al_nothing": "Doing nothing was rejected because repairs, rentals and lost time already cost about $11,400 a year and the safety issue remains.",
+    "ap_evidence": "Appendix A: three vendor quote letters dated 3/10, 3/12 and 3/14/2026. Appendix B: fleet repair log, FY2025.",
+    "pr_scope": "One compact crew-cab pickup with a locking bed cap and toolbox, replacing van #22991 at the BOS facilities shop.",
+    "pr_single": "Only the replacement truck. Nothing else is bundled into this request.",
+    "pr_date": "In service by November 1, 2026, ahead of winter operations; Fleet Partner B delivers in 6 weeks.",
+    "pr_constraints": "It must be bought through the corporate fleet contract, and the old van is disposed of by Fleet separately.",
+    "co_items": "Compact crew-cab pickup: 1 × $27,858; Bed cap and toolbox upfit: 1 × $1,840; Delivery and registration: 1 × $650",
+    "co_contingency": "5% contingency of $1,517 for upfit changes and registration fees; total $31,865.",
+    "co_funding": "Funded from the 2026 Cargo Facilities capital plan, cost center 4410.",
+    "ju_recommend": "We recommend approving Fleet Partner B at $31,865 including contingency.",
+    "ju_benefit": "It ends about 19 days a year without a vehicle and recovers roughly 6 hours a week of mechanic time.",
+    "ju_tie": "Breakdowns drop from 7 a year to under 1, and out-of-service days from 19 to about 2.",
+    "ju_risk": "The main risk is a delivery slip past November; we will mitigate it by ordering this month and fixing the date in the fleet contract.",
+    "ju_assume": "Assumes a 7-year useful life and that the current repair rate would continue if we keep the van.",
+    "al_options": "Leasing was considered but rejected because it costs more over 7 years for a vehicle used daily; a short-term rental runs about $1,350 every 3 weeks.",
+    "al_repair": "Repair was considered and rejected because it would cost about $6,000 and still leave a 19-year-old vehicle never built for maintenance work.",
+    "al_compare": "A: $28,550, 14 weeks, no upfit. B: $30,348, 6 weeks, full scope. C: $33,250, 10 weeks, full scope.",
+    "sel_vendor": "Fleet Partner B. It costs $1,798 more than A, but A excludes the bed cap and toolbox (about $1,840 to add) and takes 14 weeks instead of 6. C covers the same scope for $2,902 more. B is the lowest all-in cost for the full scope and the fastest delivery.",
 }
 
 DEMO_WEAK = {
+    "cs_count": "We don't have enough of them.",
     "cs_age": "It's pretty old and has a lot of miles on it at this point.",
     "cs_failures": "It breaks down fairly often, not sure exactly how many times.",
-    "cs_downtime": "We make do by borrowing equipment from other teams when it's down, which slows everyone down.",
+    "cs_mechanism": "It just slows everything down when it's broken.",
+    "cs_workaround": "We make do by borrowing equipment from other teams when it's down.",
     "cs_spend": "Not sure, Finance would have that.",
-    "cs_volume": "The team uses it every day for most jobs.",
-    "pr_spec": "A newer truck of some kind.",
-    "pr_vendor": "We'd go through whoever Fleet usually uses.",
+    "ap_evidence": "Not sure what we can attach.",
+    "pr_scope": "A newer truck of some kind.",
+    "pr_single": "The truck mostly.",
     "pr_date": "As soon as possible.",
-    "pr_scope": "Nothing specific.",
-    "pr_rollout": "Fleet would handle it.",
-    "fin_capex": "Whatever the quote says — I'd need to check.",
-    "fin_benefit": "It should save money on repairs but I don't know how much.",
-    "fin_opex": "Probably similar to today, I'd need to check.",
-    "fin_life": "A while, not sure.",
-    "fin_benefit_alt": "Hard to say.",
-    "fin_residual": "No idea.",
-    "fin_budget": "Not sure if it's in the plan.",
-    "fin_npv": "",
-    "fin_payback": "",
-    "ju_outcome": "It would make the team more efficient.",
-    "ju_hours": "Some time each week, hard to say.",
-    "ju_people": "The facilities team.",
-    "ju_safety": "Not that I know of.",
-    "ju_service": "Maybe indirectly.",
-    "rk_top": "Delivery could take a while.",
-    "rk_delay": "We'd keep using the old van.",
-    "rk_notdone": "The van will eventually stop working.",
-    "rk_support": "Not sure what warranty comes with it.",
+    "pr_constraints": "Fleet would handle it.",
+    "co_items": "I'd need to check with the vendor on the breakdown.",
+    "co_contingency": "Not sure what contingency to use.",
+    "co_funding": "Not sure if it's in the plan.",
+    "ju_recommend": "We think the new truck would be better.",
+    "ju_benefit": "It should save time, hard to say how much.",
+    "ju_tie": "Things would be better than they are now.",
+    "ju_risk": "Delivery could take a while.",
+    "ju_assume": "Not sure.",
+    "al_options": "We looked at a couple of other trucks.",
     "al_repair": "We could repair it.",
-    "al_other": "We looked at a couple of other trucks.",
-    "al_lease": "Didn't really look at that.",
-    "al_nothing": "Not a good idea.",
+    "al_compare": "They're all about the same.",
+    "sel_vendor": "Probably the cheapest one.",
 }
 
 
@@ -737,13 +619,13 @@ def demo_answers(req: dict) -> dict:
     scenario = req.get("demo_scenario") or "pass"
     out, used = {}, {}
     for q in rnd["questions"]:
-        weak_cat = (scenario == "escalate" or
-                    (scenario == "second" and rnd["round"] == 1 and q["category"] == "Financial Case"))
-        src = DEMO_WEAK if weak_cat else DEMO_STRONG
+        weak = (scenario == "escalate" or
+                (scenario == "second" and rnd["round"] == 1 and q["category"] in ("Cost", "Justification")))
+        src = DEMO_WEAK if weak else DEMO_STRONG
         if q["id"] in src:
             out[q["id"]] = src[q["id"]]
             continue
-        pool = _pool(src, q["field"]) or _pool(src, "background")   # model-written question
+        pool = _pool(src, q["field"]) or _pool(src, "current_situation")
         i = used.get(q["field"], 0)
         used[q["field"]] = i + 1
         out[q["id"]] = pool[i % len(pool)] if pool else ""

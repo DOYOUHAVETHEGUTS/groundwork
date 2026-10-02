@@ -56,9 +56,11 @@ def build_message(req):
         f"Score:    {history}  (needs {threshold})",
         "",
         "Category scores:",
-        *[f"  • {c['name']}: {c['score']} (weight {c['weight']}%)" for c in q.get("categories", [])],
+        *[f"  • {c['name']}: {c.get('earned', c['score'])}/{c['weight']}" for c in q.get("categories", [])],
         "",
-        "Still open:",
+        *(["Required items not met:"] + [f"  • {g['label']}: {g['message']}" for g in q.get("gates", []) if not g.get("passed")] + [""]
+          if any(not g.get("passed") for g in q.get("gates", [])) else []),
+        "Largest open findings:",
         *[f"  • {m}" for m in (q.get("missing") or ["—"])],
     ]
     if unanswered:

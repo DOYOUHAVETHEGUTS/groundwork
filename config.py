@@ -14,8 +14,8 @@ DEFAULTS = {
     "model": "gpt-4o-mini",
     "api_version": "2024-10-21",   # azure_openai only
     "deployment": "",              # azure_openai only (defaults to model)
-    "temperature": 0.2,
-    "max_tokens": 2000,
+    "temperature": 0,              # grading runs deterministic; auto-retried without it if a model rejects it
+    "max_tokens": 4000,
     "timeout_seconds": 60,
     # --- behavior ---
     "offline_mode": False,         # True = deterministic rules only, never calls the API
@@ -32,6 +32,15 @@ DEFAULTS = {
     "smtp_user": "",
     "smtp_password": "",
     "smtp_from": "",
+    # --- example images (separate from the text model; Claude does not generate images) ---
+    "image_provider": "none",      # none | openai | azure_openai
+    "image_api_key": "",
+    "image_model": "gpt-image-1",
+    "image_base_url": "",
+    "image_deployment": "",
+    "image_api_version": "",
+    "image_per_request": 4,        # budget: AI example images per request
+    "image_monthly_cap": 40,       # budget: AI example images per calendar month, whole deploy
 }
 
 ENV_MAP = {
@@ -50,9 +59,16 @@ ENV_MAP = {
     "smtp_user": "GW_SMTP_USER",
     "smtp_password": "GW_SMTP_PASSWORD",
     "smtp_from": "GW_SMTP_FROM",
+    "image_provider": "GW_IMAGE_PROVIDER",
+    "image_api_key": "GW_IMAGE_API_KEY",
+    "image_model": "GW_IMAGE_MODEL",
+    "image_base_url": "GW_IMAGE_BASE_URL",
+    "image_deployment": "GW_IMAGE_DEPLOYMENT",
+    "image_per_request": "GW_IMAGE_PER_REQUEST",
+    "image_monthly_cap": "GW_IMAGE_MONTHLY_CAP",
 }
 
-SECRET_KEYS = {"api_key", "smtp_password", "alert_webhook_url"}
+SECRET_KEYS = {"api_key", "smtp_password", "alert_webhook_url", "image_api_key"}
 
 
 def load():
@@ -84,7 +100,8 @@ def save(patch: dict):
             continue
         if k in ("temperature",):
             v = float(v)
-        elif k in ("max_tokens", "timeout_seconds", "min_score_to_advance", "smtp_port"):
+        elif k in ("max_tokens", "timeout_seconds", "min_score_to_advance", "smtp_port",
+                   "image_per_request", "image_monthly_cap"):
             v = int(v or 0)
         elif k == "offline_mode":
             v = bool(v)

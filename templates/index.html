@@ -104,7 +104,7 @@ button.strip:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 .type-opt:hover{background:var(--surface-2)}
 .type-opt.sel{border-color:var(--ink);box-shadow:0 0 0 3px rgba(20,31,51,.08)}
 .type-opt .ico{font-size:20px} .type-opt .nm{font-weight:600;font-size:14px}
-input[type=text],input[type=password],input[type=number],textarea,select{width:100%;font-family:var(--body);font-size:15px;color:var(--ink);border:1.5px solid var(--line-2);border-radius:var(--r);padding:12px 14px;background:var(--surface)}
+input:not([type]),input[type=text],input[type=email],input[type=password],input[type=number],textarea,select{width:100%;font-family:var(--body);font-size:15px;color:var(--ink);border:1.5px solid var(--line-2);border-radius:var(--r);padding:12px 14px;background:var(--surface)}
 textarea{resize:vertical;line-height:1.55;min-height:110px}
 input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px rgba(20,31,51,.09)}
 .method-grid{display:grid;grid-template-columns:1fr;gap:12px}
@@ -274,6 +274,103 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
 .scen button:hover{border-color:var(--ink);transform:translateY(-1px)}
 .scen b{display:block;font-size:15px;margin-bottom:2px} .scen span{font-size:13px;color:var(--ink-3)}
 .modal-section{font-family:var(--disp);font-size:15px;margin:24px 0 12px;padding-top:18px;border-top:1px solid var(--line)}
+
+/* ---- v2: five points, gates, findings, editors, versions ---- */
+.vtabs{display:flex;gap:4px;margin-left:12px;background:#0B1424;border:1px solid #2A3A56;border-radius:100px;padding:3px}
+.vtabs button{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;border:0;background:none;color:#9FB0CC;padding:5px 11px;border-radius:100px}
+.vtabs button.on{background:var(--amber);color:var(--ink);font-weight:700}
+.vtabs button small{display:none}
+@media(min-width:900px){.vtabs button small{display:inline;opacity:.75;margin-left:4px;letter-spacing:0;text-transform:none;font-family:var(--body)}}
+.pv-bar{background:#2C2A55;color:#E6E4FF;padding:9px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13.5px}
+.pv-bar b{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#BDB8FF}
+.pv-bar select{width:auto;padding:5px 10px;font-size:13px;border-radius:8px;background:#1C1A40;color:#fff;border-color:#4B47A0}
+.pv-bar .grow{flex:1}.pv-bar button{background:none;border:1px solid #6E69C8;color:#E6E4FF;border-radius:8px;padding:5px 10px;font-size:12.5px}
+.fhint{font-size:12.5px;color:var(--ink-3);margin:-3px 0 8px}
+.edcard{margin-bottom:16px}.ed-head{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-bottom:4px}
+.req-pill{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:100px;background:#F7DFD9;color:#8A2A16}
+.req-pill.ok{background:var(--go-soft);color:#0E6B41}
+.sub-h{font-weight:700;font-size:13px;margin:14px 0 8px;color:var(--ink-2)}
+.qcard-ed{border:1.5px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:10px 0;background:var(--surface-2)}
+.qcard-ed.sel{border-color:var(--go);background:#F3FBF6}
+.qe-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;align-items:end}
+@media(max-width:640px){.qe-top{grid-template-columns:1fr 1fr}}
+.qe-top label,.li label{font-size:11px;color:var(--ink-3);display:block;margin-bottom:3px}
+.qcard-ed input,.li input{padding:8px 10px;font-size:13.5px;border-radius:9px}
+.li{display:grid;grid-template-columns:3fr 70px 1fr 1fr 28px;gap:6px;align-items:center;margin-top:6px}
+.li .amt{font-family:var(--mono);font-size:12.5px;text-align:right;color:var(--ink-2)}
+.xbtn{border:0;background:none;color:var(--ink-3);font-size:18px;line-height:1;padding:0 4px}
+.qe-foot{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;font-size:12.5px}
+.qe-foot .tot{font-family:var(--mono);font-weight:700}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600}.chk input{width:auto}
+.cost-total{font-family:var(--mono);font-size:13px;text-align:right;color:var(--ink);margin-top:6px}
+.seg{display:inline-flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+.seg button{border:1.5px solid var(--line-2);background:var(--surface);border-radius:100px;padding:8px 14px;font-weight:600;font-size:13.5px}
+.seg button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.step-row{display:grid;grid-template-columns:24px 2.2fr 1fr 1fr auto 28px;gap:6px;align-items:center;margin-bottom:6px}
+.step-row input{padding:8px 10px;font-size:13.5px;border-radius:9px}.step-row .n{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+@media(max-width:640px){.step-row{grid-template-columns:20px 1fr 1fr 28px}.step-row .vol,.step-row .chk{display:none}}
+#flowPreview img,.ex-thumb img{max-width:100%;border-radius:10px;border:1px solid var(--line);margin-top:10px}
+.ex-item{display:grid;grid-template-columns:120px 1fr auto;gap:12px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.ex-item img{width:120px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.ex-item .t{font-weight:600;font-size:13.5px}.ex-item .c{font-size:11.5px;color:var(--ink-3);word-break:break-word}
+.ex-kind{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:100px;background:var(--info-soft);color:#1B4D86;margin-right:6px}
+.ex-kind.example,.ex-kind.reference{background:var(--amber-soft);color:#8A5A08}
+.toolbox{background:var(--surface-2);border:1px dashed var(--line-2);border-radius:var(--r);padding:12px 14px;margin-top:10px}
+.row1{display:flex;gap:8px}.row1 input{flex:1}
+.ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.ref-card{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);font-size:11px}
+.ref-card img{width:100%;height:100px;object-fit:cover;display:block}.ref-card div{padding:6px 8px;color:var(--ink-3)}
+.ref-card button{width:100%;border:0;border-top:1px solid var(--line);background:var(--surface-2);padding:7px;font-weight:600;font-size:12px}
+.gate{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--r);margin-bottom:10px;border:1.5px solid}
+.gate.fail{background:#FBEAE6;border-color:#E7A99A}.gate.req{background:#FFF6E6;border-color:#F0D9A8}.gate.pass{background:var(--go-soft);border-color:#B4E0C8}
+.gate .gi{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;flex:none;font-size:14px}
+.gate.fail .gi{background:var(--stop)}.gate.req .gi{background:var(--caution)}.gate.pass .gi{background:var(--go)}
+.gate b{display:block;font-size:14.5px}.gate span{font-size:13.5px;color:var(--ink-2)}
+.gate .tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-left:6px;color:var(--stop)}
+.cre-call{margin-top:14px;padding:10px 14px;border-radius:10px;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cre-call.yes{background:#EFEAFB;color:#3E2A82;border:1px solid #D3C8F3}.cre-call.no{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.cre-call.unknown{background:#FFF6E6;color:#7A5410;border:1px solid #F0D9A8}
+.cre-call b{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em}
+.seccard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:12px}
+.sec-top{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.sec-num{font-family:var(--mono);font-weight:700;font-size:12px;width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;display:inline-grid;place-items:center}
+.sec-name{font-family:var(--disp);font-weight:600;font-size:17px;flex:1}.sec-score{font-family:var(--mono);font-weight:700;font-size:14px}
+.sec-strong{font-size:13px;color:#0E6B41;margin-top:8px}
+details.why{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+details.why summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px}
+details.why summary::-webkit-details-marker{display:none}
+details.why summary::before{content:"▸";font-size:12px;color:var(--ink-3);transition:.15s}details.why[open] summary::before{transform:rotate(90deg)}
+details.why summary .n{font-family:var(--mono);font-size:11px;background:var(--caution-soft);color:#8A5A08;padding:1px 8px;border-radius:100px}
+.finding{border-left:3px solid var(--caution);background:var(--surface-2);border-radius:0 10px 10px 0;padding:11px 14px;margin-top:10px}
+.finding.major{border-left-color:var(--stop)}
+.f-top{display:flex;gap:10px;align-items:baseline}.f-top b{flex:1;font-size:14px}.f-pts{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--stop);white-space:nowrap}
+.f-why{font-size:13.5px;color:var(--ink-2);margin-top:4px}.f-ev{font-size:12.5px;color:var(--ink-3);margin-top:6px;font-style:italic}
+.f-fix{font-size:13.5px;margin-top:6px}.f-fix b{color:#0E6B41}
+.rw-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px;margin-top:16px}
+.rw-item{border-top:1px solid var(--line);padding:12px 0}.rw-item:first-of-type{border-top:0}
+.rw-item .k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.rw-item .v{font-size:14px;white-space:pre-wrap;margin:6px 0 8px}
+.ro-banner{background:#EEF1F6;border:1px solid var(--line-2);border-radius:var(--r);padding:10px 14px;font-size:13.5px;margin-bottom:14px}
+.guide{margin-bottom:16px}.g-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.g-step{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.12em;font-weight:700}
+.g-q{font-family:var(--disp);font-size:19px;font-weight:600;margin:4px 0 10px}
+.g-dots{display:flex;gap:5px}.g-dots span{width:8px;height:8px;border-radius:50%;background:var(--line-2)}.g-dots span.on{background:var(--amber)}.g-dots span.done{background:var(--go)}
+.g-all{font-size:13px;color:var(--ink-2);margin:10px 0 0;padding-left:18px}.g-all li{margin-bottom:4px}
+.lib-card{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;width:100%;text-align:left}
+.lib-tier{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:100px}
+.lib-tier.weak{background:#F7DFD9;color:#8A2A16}.lib-tier.refined{background:var(--info-soft);color:#1B4D86}.lib-tier.exemplary{background:var(--go-soft);color:#0E6B41}
+.chip.blocked{background:#F7DFD9;color:#8A2A16}.chip.blocked .led{background:var(--stop)}.strip.s-blocked .spine{background:var(--stop)}
+.tbl-wrap{overflow-x:auto}.dash-table{margin-top:14px}
+table.gt{width:100%;border-collapse:collapse;font-size:13px}
+table.gt th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.gt td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+table.gt tr.click:hover td{background:var(--surface-2);cursor:pointer}
+table.gt select,table.gt input{padding:6px 8px;font-size:12.5px;border-radius:8px}
+.gate-tiles{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.gate-tiles span{font-size:12.5px;padding:5px 11px;border-radius:100px;background:#FBEAE6;color:#8A2A16}
+.idp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px;margin-top:14px}
+.idp code,.idp pre{font-family:var(--mono);font-size:12px;background:var(--surface-2);border-radius:8px}
+.idp pre{padding:12px;overflow-x:auto;border:1px solid var(--line)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px}.kv .ok{color:var(--go);font-weight:700}.kv .no{color:var(--stop);font-weight:700}
 </style>
 </head>
 <body>
@@ -283,12 +380,14 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
       <span class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L11 19v-5.5l8 2.5z" fill="currentColor"/></svg></span>
       <span>Groundwork<small>Capital Intake</small></span>
     </div>
+    <nav class="vtabs" id="vtabs"></nav>
     <div class="spacer"></div>
     <span class="pill" id="enginePill">rules mode</span>
-    <button class="pill" onclick="openSettings()">Settings</button>
+    <button class="pill" id="settingsPill" onclick="openSettings()" style="display:none">Settings</button>
     <a class="pill" id="logoutPill" href="/logout" style="display:none">Log out</a>
   </header>
 
+  <div id="previewBar"></div>
   <main class="main">
     <!-- HOME -->
     <section class="view active" id="view-home">
@@ -298,7 +397,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
         <p>Describe what you need in your own words. Groundwork builds the five-point justification, scores it against what gets approved, and tells you what is still missing.</p>
         <div class="btn-row">
           <button class="btn amber lg" onclick="startNew()"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Start a request</button>
-          <button class="btn ghost-light lg" onclick="openDemo()">▶ Watch a guided demo</button>
+          <button class="btn ghost-light lg" onclick="$('importFile').click()">Import a Word draft</button>
+          <button class="btn ghost-light lg" onclick="openDemo()">▶ Guided demo</button>
+          <input type="file" id="importFile" accept=".docx" style="display:none" onchange="importDocx(this)">
         </div>
       </div>
       <div class="metrics">
@@ -308,6 +409,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
       </div>
       <div class="list-head"><h2>Your requests</h2><span class="count" id="reqCount"></span></div>
       <div id="requestList"></div>
+      <div class="list-head"><h2>Training library</h2><span class="count">what weak, refined and exemplary look like</span></div>
+      <div id="libList"></div>
     </section>
 
     <!-- NEW -->
@@ -367,6 +470,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
     <!-- VOICE -->
     <section class="view" id="view-voice">
       <button class="back-link" onclick="go('method')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Back</button>
+      <div id="guide-voice"></div>
       <div class="card pad">
         <div class="mic-stage">
           <button class="mic-btn" id="micBtn" onclick="toggleRec()" aria-label="Start recording">
@@ -387,7 +491,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
       <button class="back-link" onclick="go('method')"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Back</button>
       <p class="eyebrow">Explain the need</p>
       <h1 class="display" style="font-size:clamp(24px,5vw,30px)">Tell us what's going on</h1>
-      <p class="lede">What is the problem today, and what are you asking for? Include any numbers you already know — age, failure rate, quotes, volumes.</p>
+      <p class="lede">Answer the guiding questions in your own words. Numbers you already know (counts, ages, failures, quotes) make the biggest difference.</p>
+      <div id="guide-write"></div>
       <div class="card pad">
         <div class="sfield"><label>In your own words</label><textarea id="writeInput" rows="8" placeholder="e.g. Facilities in BOS runs a 2007 minivan with 140,761 miles for tool and personnel transport. The fuel gauge fails intermittently, the interior is unserviceable, and it was never built as a maintenance vehicle. We want to replace it with a small crew-cab pickup."></textarea></div>
         <button class="btn block lg" onclick="structure(val('writeInput'))">Build the five-point draft<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
@@ -412,38 +517,68 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
     <!-- REVIEW -->
     <section class="view" id="view-review">
       <div class="rail" id="rail-review"></div>
+      <div id="demoBar-review"></div><div id="roBanner-review"></div>
       <p class="eyebrow">Review &amp; edit</p>
       <h1 class="display" style="font-size:clamp(22px,5vw,30px)">Your five-point draft</h1>
-      <p class="lede">Anything wrong? Edit it directly — you know the details better than we do. Empty fields are fine; they show up as open items.</p>
+      <p class="lede">Five sections, in the order Finance reads them. Edit anything — you know the details better than we do.</p>
+      <div id="reqBanner"></div>
       <div class="card pad" style="margin-bottom:16px">
+        <div class="sfield"><label>Request title</label><input type="text" id="f_title" /></div>
         <div class="sfield"><label>What you told us</label><div class="orig-quote" id="origQuote"></div></div>
-        <div class="sfield"><label>Executive summary <span class="ai-tag">drafted</span></label><textarea id="f_executive_summary" rows="3"></textarea></div>
-        <div class="sfield"><label>1 · Background / Current situation <span class="ai-tag">drafted</span></label><textarea id="f_background" rows="4"></textarea></div>
-        <div class="sfield"><label>2 · Proposal <span class="ai-tag">drafted</span></label><textarea id="f_proposal" rows="4"></textarea></div>
-        <div class="sfield"><label>3 · Justification</label><textarea id="f_justification" rows="4"></textarea></div>
-        <div class="sfield"><label>Operational impact assessment</label><textarea id="f_operational_impact" rows="3"></textarea></div>
-        <div class="row">
-          <div class="sfield"><label>Who is affected</label><input type="text" id="f_affected_groups" /></div>
-          <div class="sfield"><label>Why now / timing</label><input type="text" id="f_timing" /></div>
-        </div>
-        <div class="sfield"><label>4 · Risks (pair each with a mitigation)</label><textarea id="f_risks" rows="4"></textarea></div>
-        <div class="sfield"><label>5 · Alternatives (and why not selected)</label><textarea id="f_alternatives" rows="4"></textarea></div>
+        <div class="sfield"><label>1 · Current Situation</label><p class="fhint">A measured baseline (counts, ages, utilization, failures) and why the problem happens.</p><textarea id="f_current_situation" rows="6"></textarea></div>
+        <div class="sfield"><label>2 · Proposal</label><p class="fhint">One ask that matches the title: what, how many, where, by when, and any sourcing rules.</p><textarea id="f_proposal" rows="4"></textarea></div>
+        <div class="sfield"><label>3 · Cost</label><p class="fhint">Itemize in the cost build-up below. Use this box for notes on tax, freight, install or exceptions.</p><textarea id="f_cost" rows="3"></textarea></div>
+        <div class="sfield"><label>4 · Justification</label><p class="fhint">Your recommendation, the benefit in numbers tied to the baseline, and the risks and assumptions.</p><textarea id="f_justification" rows="5"></textarea></div>
+        <div class="sfield" style="margin-bottom:0"><label>5 · Alternatives</label><p class="fhint">Real options (repair, lease, phase, another approach), each with its cost and why it wasn't chosen.</p><textarea id="f_alternatives" rows="4"></textarea></div>
       </div>
-      <div class="card pad" style="margin-bottom:16px">
-        <div class="sfield" style="margin-bottom:12px"><label>Financials — the section weak requests skip</label></div>
-        <div class="fin-grid">
-          <div class="sfield"><label>One-time cost</label><input type="text" id="f_capex" placeholder="$30,348" /></div>
-          <div class="sfield"><label>Recurring annual</label><input type="text" id="f_opex_annual" /></div>
-          <div class="sfield"><label>Annual benefit</label><input type="text" id="f_benefit_annual" /></div>
-          <div class="sfield"><label>NPV @ 20%</label><input type="text" id="f_npv" /></div>
-          <div class="sfield"><label>5-yr MIRR</label><input type="text" id="f_mirr" /></div>
-          <div class="sfield"><label>Payback (months)</label><input type="text" id="f_payback_months" /></div>
-        </div>
-        <div class="sfield" style="margin-bottom:0"><label>Key assumptions</label><textarea id="f_assumptions" rows="2"></textarea></div>
+      <div class="card pad edcard" id="quotesCard">
+        <div class="ed-head"><h3 class="sec-h">Vendor quotes</h3><span class="req-pill" id="quoteCount">3 required</span></div>
+        <p class="hint">Three quotes are required — fewer is an automatic fail. Itemize each one so the bids can be compared line by line, and mark the vendor you're selecting.</p>
+        <div id="quotesEd"></div>
+        <button class="btn sm ghost" onclick="addQuote()">+ Add a quote</button>
+        <div class="sfield" style="margin:16px 0 0"><label>Selected vendor and why</label><p class="fhint">Not always the cheapest. Explain the best value all-in: scope covered, lead time, warranty, support, compliance, total cost.</p><textarea id="f_selection_rationale" rows="3"></textarea></div>
       </div>
-      <div class="unknowns" id="unknownsBox"><h4>Still missing — fill these before submitting</h4><ul id="unknownsList"></ul></div>
+      <div class="card pad edcard">
+        <div class="ed-head"><h3 class="sec-h">Cost build-up</h3><button class="btn sm ghost" onclick="copySelectedQuote()">Copy lines from the selected quote</button></div>
+        <p class="hint">Quantity × unit cost for every line, then contingency. NPV and payback are prepared by Finance with the division template.</p>
+        <div id="costEd"></div>
+        <button class="btn sm ghost" onclick="addCostLine()">+ Add a line</button>
+        <div class="row" style="margin-top:14px"><div class="sfield"><label>Contingency %</label><input type="number" id="f_contingency_pct" min="0" step="0.5" oninput="costTotals()" /></div>
+          <div class="sfield"><label>Funding source</label><input type="text" id="f_funding_source" placeholder="Capital plan line, cost center, credits…" /></div></div>
+        <div class="cost-total" id="costTotal"></div>
+      </div>
+      <div class="card pad edcard">
+        <h3 class="sec-h">Corporate Real Estate</h3>
+        <p class="hint">CRE-driven requests (facilities, buildings, leases, space) must use the CRE template. You have to declare either way.</p>
+        <div class="seg" id="creSeg"><button data-v="yes" onclick="setCre('yes')">Yes, CRE-driven</button><button data-v="no" onclick="setCre('no')">No</button></div>
+        <div id="creTpl" class="sfield" style="margin:14px 0 0;display:none"><label>CRE template</label>
+          <select id="f_cre_template"><option value="">Not requested yet</option><option value="requested">Requested</option><option value="attached">Received and attached</option></select></div>
+        <p class="hint" id="creHint" style="margin-top:10px"></p>
+      </div>
+      <div class="card pad edcard">
+        <h3 class="sec-h">Visuals &amp; appendix</h3>
+        <p class="hint">Requests without pictures or data are the most common reason Finance sends them back. Show the condition, and show where the process gets stuck.</p>
+        <div class="sub-h">Process flow — mark the bottleneck</div>
+        <div id="flowEd"></div>
+        <div class="btn-row" style="margin-top:6px"><button class="btn sm ghost" onclick="addStep()">+ Add a step</button><button class="btn sm ghost" onclick="previewFlow()">Preview the flow</button></div>
+        <div id="flowPreview"></div>
+        <div class="sub-h" style="margin-top:20px">Photos and exhibits</div>
+        <div id="exhibitList"></div>
+        <div class="btn-row">
+          <button class="btn sm ghost" onclick="$('photoFile').click()">Upload a photo or quote letter</button>
+          <button class="btn sm ghost" id="genBtn" onclick="toggleGen()">Generate an example image</button>
+          <button class="btn sm ghost" onclick="toggleRef()">Find a reference photo</button>
+          <input type="file" id="photoFile" accept="image/*" style="display:none" onchange="uploadPhoto(this)">
+        </div>
+        <div id="genBox" class="toolbox" style="display:none"><p class="hint">Creates a realistic <b>example</b> image, stamped "EXAMPLE" in the image itself and cited. Use it to illustrate, never as evidence of the actual site.</p>
+          <div class="row1"><input type="text" id="genSubject" placeholder="e.g. worn minivan interior used as a maintenance vehicle" /><button class="btn sm" onclick="genImage()">Generate</button></div><p class="hint" id="genBudget"></p></div>
+        <div id="refBox" class="toolbox" style="display:none"><p class="hint">Freely-licensed photos from Wikimedia Commons, labeled as reference examples and cited with author and license.</p>
+          <div class="row1"><input type="text" id="refQuery" placeholder="e.g. aircraft engine transport stand" onkeydown="if(event.key==='Enter')refSearch()" /><button class="btn sm" onclick="refSearch()">Search</button></div><div id="refResults" class="ref-grid"></div></div>
+        <div class="sfield" style="margin:18px 0 0"><label>Appendix notes</label><p class="fhint">List each exhibit with its date. Every "Appendix X" you reference must exist.</p><textarea id="f_appendix" rows="3"></textarea></div>
+      </div>
+      <div class="unknowns" id="unknownsBox"><h4>Still missing</h4><ul id="unknownsList"></ul></div>
       <p class="engine-note" id="structEngine"></p>
-      <div class="btn-row" style="margin-top:18px">
+      <div class="btn-row" style="margin-top:18px" id="reviewActions">
         <button class="btn ghost" onclick="saveDraft()">Save draft</button>
         <button class="btn" style="flex:1" onclick="qualify()">Score my request<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
       </div>
@@ -452,22 +587,20 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
     <!-- QUALIFY -->
     <section class="view" id="view-qual">
       <div class="rail" id="rail-qual"></div>
-      <div id="demoBar-qual"></div>
+      <div id="demoBar-qual"></div><div id="roBanner-qual"></div>
+      <div id="gateBox"></div>
       <div class="card pad" style="margin-bottom:16px">
         <div class="qual-head">
           <div class="gauge" id="gauge"></div>
           <div class="qual-verdict"><h2 id="verdictTitle"></h2><p id="verdictText"></p></div>
         </div>
-        <div class="divider"></div>
-        <div class="cats" id="cats"></div>
+        <div id="creCallout"></div>
       </div>
-      <div class="two-col">
-        <div class="card pad feedback strong"><h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="var(--go)" stroke-width="2.4" stroke-linecap="round"/></svg>What's strong</h4><ul id="strongList"></ul></div>
-        <div class="card pad feedback miss"><h4><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="var(--caution)" stroke-width="2" stroke-linecap="round"/></svg>What's still needed</h4><ul id="missList"></ul></div>
-      </div>
-      <div class="coach"><p class="eyebrow">Suggested next step</p><p id="coachText"></p></div>
-      <div id="rewriteBox"></div>
+      <p class="eyebrow" style="margin-top:6px">The five points</p>
+      <div id="secCards"></div>
       <div id="coachCta"></div>
+      <div id="noteBox"></div>
+      <div id="rewriteBox"></div>
       <p class="engine-note" id="qualEngine"></p>
     </section>
 
@@ -512,6 +645,24 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
       <div id="rsGaps"></div>
       <div id="rsEsc"></div>
       <div class="btn-row" style="margin-top:18px" id="rsActions"></div>
+    </section>
+
+    <!-- DASHBOARD (V2+) -->
+    <section class="view" id="view-dash">
+      <p class="eyebrow" id="dashEyebrow">Director view</p>
+      <h1 class="display" style="font-size:clamp(22px,5vw,30px)" id="dashTitle">Floor overview</h1>
+      <p class="lede" id="dashLede"></p>
+      <div class="metrics" id="dashTiles"></div>
+      <div id="dashGates"></div>
+      <div class="card dash-table"><div class="tbl-wrap"><table id="dashTable"></table></div></div>
+    </section>
+
+    <!-- ADMIN (V2+) -->
+    <section class="view" id="view-admin">
+      <p class="eyebrow">Administration</p>
+      <h1 class="display" style="font-size:clamp(22px,5vw,30px)">People, access &amp; backend</h1>
+      <div class="seg" id="adminTabs"></div>
+      <div id="adminBody"></div>
     </section>
 
     <!-- HANDOFF -->
@@ -619,6 +770,18 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
         <div class="field"><label class="label">Password / app password</label><input type="password" id="s_smtp_password" /></div>
       </div>
       <button class="btn sm ghost" onclick="testAlert()" style="margin-bottom:6px">Send a test alert</button>
+      <h4 class="modal-section">Example images &amp; budget</h4>
+      <p class="sublabel">Image generation uses a separate image model (the text model can't draw). Every generated image is stamped "EXAMPLE" and cited.</p>
+      <div class="row">
+        <div class="field"><label class="label">Image provider</label><select id="s_image_provider"><option value="none">Off</option><option value="openai">OpenAI images</option><option value="azure_openai">Azure OpenAI images</option></select></div>
+        <div class="field"><label class="label">Image model / deployment</label><input type="text" id="s_image_model" placeholder="gpt-image-1" /></div>
+      </div>
+      <div class="field"><label class="label">Image API key <span class="hint">(blank = reuse the text key if same provider)</span></label><input type="password" id="s_image_api_key" /></div>
+      <div class="field"><label class="label">Image base URL <span class="hint">(Azure: https://&lt;resource&gt;.openai.azure.com)</span></label><input type="text" id="s_image_base_url" /></div>
+      <div class="row">
+        <div class="field"><label class="label">Images per request</label><input type="number" id="s_image_per_request" min="0" /></div>
+        <div class="field"><label class="label">Images per month (all users)</label><input type="number" id="s_image_monthly_cap" min="0" /></div>
+      </div>
       <h4 class="modal-section">Behavior</h4>
       <div class="field"><label class="label"><input type="checkbox" id="s_offline_mode" style="width:auto;margin-right:8px">Offline mode (rules only, never call the API)</label></div>
       <div class="status-line" id="sStatus"></div>
@@ -633,9 +796,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--ink);outline:none;box
 <div class="toast" id="toast"></div>
 
 <script>
-const FIELDS=['executive_summary','background','proposal','justification','operational_impact',
-  'affected_groups','timing','risks','alternatives','capex','opex_annual','benefit_annual',
-  'npv','mirr','payback_months','assumptions'];
+const FIELDS=['current_situation','proposal','cost','justification','alternatives','selection_rationale','appendix','contingency_pct','funding_source'];
 let state={};
 const $=id=>document.getElementById(id);
 const val=id=>($(id)?.value||'').trim();
@@ -650,47 +811,13 @@ function renderRail(v,a){const el=$('rail-'+v);if(!el)return;
   el.innerHTML=RAIL.map((s,i)=>{const c=i<a?'done':(i===a?'active':'');
     return `<div class="rail-step ${c}"><span class="rail-dot">${i<a?'✓':i+1}</span><span class="rail-label">${s}</span></div>`+
       (i<RAIL.length-1?'<span class="rail-line"></span>':'');}).join('');}
-function go(v){['home','new','method','voice','write','processing','review','qual','coach','result','handoff']
-  .forEach(id=>$('view-'+id).classList.toggle('active',id===v));
-  window.scrollTo({top:0,behavior:'smooth'});
-  const st={review:1,qual:2,coach:3,result:3,handoff:4}[v]; if(st!==undefined)renderRail(v,st);}
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');
   clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),2600);}
 
 /* ---------- home ---------- */
-async function loadList(){
-  const {items}=await api('/api/requests');
-  $('reqCount').textContent=items.length+' total';
-  const scored=items.filter(i=>i.score>0);
-  $('mDraft').textContent=items.filter(i=>['draft','need','review','escalated'].includes(i.status)).length;
-  $('mReady').textContent=items.filter(i=>['ready','handoff'].includes(i.status)).length;
-  $('mAvg').textContent=scored.length?Math.round(scored.reduce((a,b)=>a+b.score,0)/scored.length):'—';
-  $('requestList').innerHTML=items.length?items.map(r=>`
-    <button class="strip s-${r.status}" onclick="openReq('${r.id}')"><span class="spine"></span>
-      <span class="strip-body">
-        <span class="strip-top"><span class="callsign">${r.id}</span><span class="dept">${esc(r.department||'')}</span></span>
-        <span class="strip-title">${esc(r.title||'Untitled')}</span>
-        <span class="strip-cells">
-          <span class="cell"><span class="k">Type</span><span class="v">${esc(r.request_type||'—')}</span></span>
-          <span class="cell"><span class="k">Score</span><span class="v">${r.score?r.score+' / 100':'—'}</span></span>
-          <span class="cell"><span class="k">Updated</span><span class="v">${new Date(r.updated*1000).toLocaleDateString()}</span></span>
-        </span></span>
-      <span class="strip-right"><span class="chip ${r.status}"><span class="led"></span>${label(r.status)}</span></span>
-    </button>`).join(''):'<p class="hint">No requests yet — start one above.</p>';
-}
-const label=s=>({draft:'Draft',need:'Needs information',review:'Almost there',ready:'Ready',handoff:'Sent to Levelpath',escalated:'Finance alerted'}[s]||'Draft');
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-async function openReq(id){state=await api('/api/requests/'+id);populateReview();
-  const last=lastRound();
-  if(last&&!last.answered){renderCoach();go('coach');}
-  else if(last){renderResult();go('result');}
-  else if(state.qualification){renderQual(state.qualification);go('qual');}
-  else go('review');}
-
 /* ---------- new ---------- */
-function startNew(){state={};$('reqTitle').value='';$('reqFinance').value='';$('reqRequester').value='';$('writeInput').value='';$('transcript').value='';
-  document.querySelectorAll('.type-opt').forEach(o=>o.classList.remove('sel'));go('new');}
 function pickType(el){document.querySelectorAll('.type-opt').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel');state.request_type=el.dataset.type;}
 
@@ -736,63 +863,7 @@ function animateProc(){const steps=[...document.querySelectorAll('.proc-step')];
     if(i<steps.length){steps[i].className='proc-step on';
       const sp=document.createElement('span');sp.className='spin';steps[i].appendChild(sp);i++;setTimeout(tick,620);}})();}
 
-function populateReview(){
-  $('reqTitle').value=state.title||'';$('reqDept').value=state.department||'';
-  $('reqRequester').value=state.requester||'';$('reqFinance').value=state.finance_contact_email||'';
-  $('origQuote').textContent='“'+(state.original_description||'')+'”';
-  FIELDS.forEach(f=>{if($('f_'+f))$('f_'+f).value=state[f]||'';});
-  const mi=state.missing_information||[];
-  $('unknownsList').innerHTML=mi.map(m=>`<li><span class="dot"></span>${esc(m)}</li>`).join('');
-  $('unknownsBox').style.display=mi.length?'block':'none';
-  $('structEngine').textContent=state.engine?('Drafted by: '+state.engine+(state.engine_error?' — '+state.engine_error:'')):'';
-}
-function collect(){const o={id:state.id,title:val('reqTitle')||state.title,
-  request_type:state.request_type||'',department:val('reqDept')||state.department,
-  requester:val('reqRequester')||state.requester};
-  FIELDS.forEach(f=>{if($('f_'+f))o[f]=$('f_'+f).value.trim();});return o;}
-async function saveDraft(){state=await api('/api/requests',{method:'POST',body:JSON.stringify(collect())});
-  toast('Draft saved · '+state.id);loadList();}
-
 /* ---------- qualify ---------- */
-async function qualify(){
-  toast('Scoring…');
-  state=await api('/api/qualify',{method:'POST',body:JSON.stringify(collect())});
-  renderQual(state.qualification);go('qual');loadList();
-}
-const col=v=>v>=75?'var(--go)':v>=55?'var(--caution)':'var(--stop)';
-function renderQual(r){
-  const pct=r.overall/100,len=Math.PI*82,c=col(r.overall);
-  $('gauge').innerHTML=`<svg viewBox="0 0 200 120" width="200" height="120">
-    <path d="M18 104 A82 82 0 0 1 182 104" fill="none" stroke="var(--surface-2)" stroke-width="14" stroke-linecap="round"/>
-    <path d="M18 104 A82 82 0 0 1 182 104" fill="none" stroke="${c}" stroke-width="14" stroke-linecap="round"
-      stroke-dasharray="${len}" stroke-dashoffset="${len*(1-pct)}" style="transition:stroke-dashoffset 1s"/></svg>
-    <div class="score"><span class="num" style="color:${c}">${r.overall}</span><span class="den"> / 100</span></div>`;
-  const titles={ready:'Ready for Levelpath',review:'Almost there',need:'Needs more before submitting'};
-  const texts={ready:'Strong request. Confirm the financial assumptions and move it forward.',
-    review:'Clear problem and proposal — a couple of details will get it over the line.',
-    need:'Good start. Key facts are missing before this can be submitted.'};
-  $('verdictTitle').textContent=titles[r.status];$('verdictText').textContent=texts[r.status];
-  $('cats').innerHTML=r.categories.map(c2=>`<div>
-      <div class="cat-top"><span class="cat-name">${esc(c2.name)} <span class="hint">· ${c2.weight}%</span></span><span class="cat-val">${c2.score}</span></div>
-      <div class="bar"><span style="width:0%;background:${col(c2.score)}"></span></div>
-      ${c2.comment?`<div class="cat-note">${esc(c2.comment)}</div>`:''}</div>`).join('');
-  requestAnimationFrame(()=>document.querySelectorAll('#cats .bar span')
-    .forEach((s,i)=>s.style.width=r.categories[i].score+'%'));
-  const ok='<svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
-  const wn='<svg viewBox="0 0 24 24" fill="none"><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
-  $('strongList').innerHTML=(r.strong||[]).map(s=>`<li><span class="m">${ok}</span>${esc(s)}</li>`).join('');
-  $('missList').innerHTML=(r.missing||[]).map(s=>`<li><span class="m">${wn}</span>${esc(s)}</li>`).join('');
-  $('coachText').textContent=r.coach||'';
-  const rw=r.rewrite_suggestions||{};
-  $('rewriteBox').innerHTML=Object.keys(rw).length?`<div class="rewrite"><h4>Suggested stronger wording</h4>`+
-    Object.entries(rw).map(([k,v])=>`<div class="rw"><b>${esc(k.replace(/_/g,' '))}</b><br>${esc(v)}</div>
-      <button class="btn sm ghost" onclick="applyRw('${k}',this)">Use this</button>`).join('<div style="height:10px"></div>')+`</div>`:'';
-  window._rw=rw;
-  renderCoachCta();demoBar('qual');
-  $('qualEngine').textContent='Scored by: '+(r.engine||'rules')+(r.rules_score!==undefined?` · rules baseline ${r.rules_score}`:'')+(r.engine_error?' — '+r.engine_error:'');
-}
-function applyRw(k,btn){if($('f_'+k)){$('f_'+k).value=window._rw[k];btn.textContent='Applied';toast('Applied — re-score to see the change');}}
-
 /* ---------- guided improvement ---------- */
 const rounds=()=>(state.coaching&&state.coaching.rounds)||[];
 const lastRound=()=>{const r=rounds();return r[r.length-1]||null;};
@@ -813,25 +884,6 @@ function roundDots(){const rs=rounds();
     const t=!r?`Round ${n}`:(!r.answered?`Round ${n} · open`:`Round ${n} · ${r.score_before}→${r.score_after}`);
     return `<span class="${c}">${t}</span>`;}).join('')+'</div>';}
 
-function renderCoachCta(){
-  const s=state.score||0,rs=rounds(),open=openRound();let cls,h,p,b;
-  if(s>=TH){cls='go';h=`Passing — ${s} clears the ${TH}-point bar`;
-    p=rs.length<2&&!open?'Ready for handoff. Want it stronger before Finance sees it? Ten more questions can tighten the weakest sections.':'Ready for handoff.';
-    b=`<button class="btn" onclick="handoff()">Continue to handoff ${ARROW}</button>`+
-      (rs.length<2&&!open?'<button class="btn ghost" onclick="startRound()">Strengthen it with 10 questions</button>':'');}
-  else if(open){cls='warn';h=`Round ${open.round} questions are waiting`;p='Pick up where you left off.';
-    b=`<button class="btn amber" onclick="renderCoach();go('coach')">Resume round ${open.round}</button>`;}
-  else if(!rs.length){cls='warn';h=`Let's get you from ${s} to ${TH}`;
-    p='Answer 10 quick questions about things you already know — counts, dates, quotes, who is affected. Groundwork writes your answers into the draft, does the finance math, and re-scores.';
-    b=`<button class="btn amber lg" onclick="startRound()">Answer 10 guided questions</button><button class="btn ghost" onclick="go('review')">Edit the draft myself</button>`;}
-  else if(rs.length===1){cls='warn';h=`Second chance: 10 new questions`;
-    p=`Round 1 got you to ${s}. The next 10 questions are all different and aim at what is still holding the score down.`;
-    b=`<button class="btn amber lg" onclick="startRound()">Generate 10 new questions</button><button class="btn ghost" onclick="renderResult();go('result')">See round 1 results</button>`;}
-  else{cls='stop';h='Your finance partner has been alerted';
-    p='Two rounds did not reach the bar, so Finance has the details and can help close the gaps.';
-    b=`<button class="btn" onclick="renderResult();go('result')">See results &amp; the alert</button>`;}
-  $('coachCta').innerHTML=`<div class="cta ${cls}">${roundDots()}<h3>${h}</h3><p>${p}</p><div class="btn-row">${b}</div></div>`;}
-
 async function startRound(){
   go('coach');demoBar('coach');
   $('coachEyebrow').textContent='Guided questions';$('coachTitle').textContent='Writing your questions…';
@@ -840,21 +892,6 @@ async function startRound(){
   $('coachProgWrap').style.display='none';$('submitAnswers').disabled=true;
   try{state=await api('/api/coach/questions',{method:'POST',body:JSON.stringify({id:state.id})});renderCoach();}
   catch(e){toast(e.message);renderQual(state.qualification);go('qual');}}
-
-function renderCoach(){
-  const r=openRound();if(!r){renderResult();go('result');return;}
-  demoBar('coach');
-  $('coachEyebrow').textContent=`Round ${r.round} of 2 · Guided questions`;
-  $('coachTitle').textContent=r.round===1?`10 questions to get you to ${TH}`:'Second chance — 10 new questions';
-  $('coachLede').textContent=r.round===1
-    ?`You're at ${r.score_before}. Answer what you can and skip what you don't know. Groundwork writes your answers into the draft and calculates NPV, MIRR and payback from your numbers.`
-    :`You're at ${r.score_before}. None of these repeat round 1. Specific answers with numbers move the score most.`;
-  $('qList').innerHTML=r.questions.map((q,i)=>`<div class="qcard" id="qc_${q.id}">
-      <div class="qtop"><span class="qnum">${String(i+1).padStart(2,'0')}</span><span class="qcat">${esc(q.category)}</span><span class="qfield">→ ${esc(q.field_label||q.field)}</span></div>
-      <div class="qtext">${esc(q.question)}</div>${q.why?`<div class="qwhy">${esc(q.why)}</div>`:''}
-      <textarea id="a_${q.id}" rows="2" placeholder="${esc(q.example?'e.g. '+q.example:'Your answer')}" oninput="qProg()"></textarea></div>`).join('');
-  $('coachEngine').textContent='Questions by: '+r.engine+(r.engine_error?' — '+r.engine_error:'');
-  $('coachProgWrap').style.display='flex';$('submitAnswers').disabled=false;qProg();}
 
 function qProg(){const r=openRound();if(!r)return;
   const n=r.questions.filter(q=>val('a_'+q.id)).length;
@@ -871,42 +908,6 @@ async function submitAnswers(){
     populateReview();renderQual(state.qualification);renderResult();go('result');loadList();}
   catch(e){toast(e.message);}
   finally{btn.disabled=false;btn.innerHTML='Update my draft &amp; re-score';}}
-
-function renderResult(){
-  const r=lastRound();if(!r||!r.answered){renderQual(state.qualification);go('qual');return;}
-  demoBar('result');const co=state.coaching||{},d=r.score_after-r.score_before;
-  $('rsEyebrow').textContent=`Round ${r.round} results`;
-  $('rsBefore').textContent=r.score_before;$('rsBefore').style.color=col(r.score_before);
-  $('rsAfter').textContent=r.score_after;$('rsAfter').style.color=col(r.score_after);
-  $('rsAfterLabel').textContent=`After round ${r.round}`;
-  $('rsDelta').textContent=(d>=0?'+':'')+d+' pts';
-  $('rsDelta').style.background=d>0?'var(--go-soft)':'var(--surface-2)';$('rsDelta').style.color=d>0?'#0E6B41':'var(--ink-3)';
-  $('rsOrigin').textContent=r.round>1&&co.original_score!=null?`Started at ${co.original_score} before guided questions · needs ${r.threshold}`:`Needs ${r.threshold} to pass`;
-  const ic='<div class="rico"><svg viewBox="0 0 24 24" fill="none">';
-  $('rsBanner').innerHTML=r.passed
-    ?`<div class="readiness ok">${ic}<path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div><div><h3>Passing — ${r.score_after} clears ${r.threshold}</h3><p>The edits below got you over the bar. Review them, then hand off to Levelpath.</p></div></div>`
-    :r.round<2
-    ?`<div class="readiness need">${ic}<path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><div><h3>Still below the bar — ${r.score_after} of ${r.threshold}</h3><p>${r.threshold-r.score_after} points short. You get a second chance: 10 different questions aimed at what is left.</p></div></div>`
-    :`<div class="readiness stop">${ic}<path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><div><h3>Below the bar after two rounds — ${r.score_after} of ${r.threshold}</h3><p>Your finance partner has been alerted with the details so they can help close the gaps.</p></div></div>`;
-  const b0=Object.fromEntries((r.categories_before||[]).map(c=>[c.name,c.score]));
-  $('rsCats').innerHTML=(r.categories_after||[]).map(c=>{const b=b0[c.name]??0,dd=c.score-b;
-    return `<div class="cm-row"><div class="cat-top"><span class="cat-name">${esc(c.name)} <span class="hint">· ${c.weight}%</span></span>
-      <span class="cat-val">${b} → ${c.score}${dd?` <span style="color:${dd>0?'var(--go)':'var(--stop)'}">(${dd>0?'+':''}${dd})</span>`:''}</span></div>
-      <div class="cm-bars"><span class="b" style="width:${b}%"></span><span class="a" style="width:${b}%;background:${col(c.score)}" data-w="${c.score}"></span></div></div>`;}).join('');
-  requestAnimationFrame(()=>setTimeout(()=>document.querySelectorAll('#rsCats .a').forEach(s=>s.style.width=s.dataset.w+'%'),60));
-  window._edits=r.edits||[];renderEdits(false);
-  const qm=Object.fromEntries(r.questions.map((q,i)=>[q.id,{...q,n:i+1}]));
-  const nu=(r.not_usable||[]).map(id=>qm[id]).filter(Boolean),sk=(r.skipped||[]).map(id=>qm[id]).filter(Boolean);
-  $('rsGaps').innerHTML=nu.length+sk.length?`<div class="card pad gaps" style="margin-bottom:16px"><h3 class="sec-h">Didn't move the score</h3>
-    <p class="hint" style="margin:0">${r.passed?'Not needed to pass, but worth closing before review.':'These are the gaps still open — '+(r.round<2?'round 2 approaches them from different angles.':'your finance partner can help here.')}</p><ul>`+
-    nu.map(q=>`<li>Q${q.n} · ${esc(q.question)} <span class="hint">— answer was too vague to use</span></li>`).join('')+
-    sk.map(q=>`<li>Q${q.n} · ${esc(q.question)} <span class="hint">— skipped</span></li>`).join('')+'</ul></div>':'';
-  renderEscalation();
-  $('rsActions').innerHTML=r.passed
-    ?`<button class="btn" style="flex:1" onclick="handoff()">Continue to handoff ${ARROW}</button><button class="btn ghost" onclick="go('review')">Review the updated draft</button>`
-    :r.round<2
-    ?`<button class="btn amber lg" style="flex:1" onclick="startRound()">Generate 10 new questions</button><button class="btn ghost" onclick="go('review')">Edit the draft myself</button>`
-    :`<button class="btn ghost" onclick="go('review')">Keep editing the draft</button><button class="btn" style="flex:1" onclick="go('home');loadList()">Save &amp; return home</button>`;}
 
 function renderEdits(all){const E=window._edits||[],list=all?E:E.slice(0,5),r=lastRound()||{questions:[]};
   const qn=id=>r.questions.findIndex(q=>q.id===id)+1;
@@ -953,28 +954,14 @@ async function demoFill(){const r=openRound();if(!r)return;
     if(i===r.questions.length-1)toast('Demo answers filled — submit to re-score');},i*160));}
 
 /* ---------- handoff ---------- */
-async function handoff(){
-  const r=await api('/api/handoff',{method:'POST',body:JSON.stringify({id:state.id})});
-  const ok=r.ok;
-  $('handoffTitle').textContent=ok?'Passed qualification':'Saved — not ready yet';
-  $('handoffText').textContent=ok?'Export the five-point document or the JSON payload and load it into Levelpath.'
-    :`Score ${r.score} is below the ${r.threshold} threshold. Add the missing items and re-score.`;
-  $('handoffBanner').className='readiness '+(ok?'ok':'need');
-  $('bannerTitle').textContent=ok?'Ready for Levelpath':'Needs more information';
-  $('bannerText').textContent=ok?'Nothing to re-type — every field carries into the export.'
-    :'Go back and close the open items, then score again.';
-  $('handoffStamp').style.background=ok?'var(--go-soft)':'var(--caution-soft)';
-  $('handoffStamp').style.color=ok?'var(--go)':'var(--caution)';
-  $('dlDocx').disabled=!ok;
-  go('handoff');loadList();
-}
 function dl(fmt){window.location='/api/export?id='+encodeURIComponent(state.id)+'&format='+fmt;}
 
 /* ---------- settings ---------- */
 const SKEYS=['provider','base_url','model','deployment','api_version','temperature','max_tokens',
   'timeout_seconds','default_department','min_score_to_advance','finance_contact_name',
-  'finance_contact_email','alert_method','smtp_host','smtp_port','smtp_user','smtp_from'];
-const SECRETS={api_key:'paste your key',smtp_password:'app password',alert_webhook_url:'https://…'};
+  'finance_contact_email','alert_method','smtp_host','smtp_port','smtp_user','smtp_from',
+  'image_provider','image_model','image_base_url','image_per_request','image_monthly_cap'];
+const SECRETS={api_key:'paste your key',smtp_password:'app password',alert_webhook_url:'https://…',image_api_key:'image key'};
 function alertMethodUI(){const m=$('s_alert_method').value;
   $('alertWebhook').style.display=m==='webhook'?'block':'none';$('alertSmtp').style.display=m==='smtp'?'block':'none';
   $('alertHint').textContent={log:'Alerts are recorded on the request with a one-click email link. Nothing is sent automatically.',
@@ -1022,16 +1009,9 @@ async function testConn(){status('Testing…',true);
   const r=await api('/api/settings/test',{method:'POST',body:JSON.stringify(settingsBody())});
   status(r.ok?'Connection OK — '+r.detail:'Failed: '+r.detail,r.ok);enginePill();}
 function status(m,ok){const e=$('sStatus');e.textContent=m;e.className='status-line '+(ok?'ok':'err');}
-async function enginePill(){const s=await api('/api/schema');
-  $('enginePill').textContent=s.llm_ready?'model connected':'rules mode';
-  $('enginePill').className='pill'+(s.llm_ready?' live':'');
-  if(s.auth_required)$('logoutPill').style.display='';
-  TH=s.threshold||75;window.LLM_READY=s.llm_ready;window.SCEN_LIST=s.demo_scenarios||[];
-  window.SCEN=Object.fromEntries(window.SCEN_LIST.map(x=>[x.key,x]));}
-
 /* ---------- init ---------- */
-(async()=>{const s=await api('/api/settings');$('reqDept').value=s.default_department||'';
-  enginePill();loadList();})();
+window.addEventListener('DOMContentLoaded',()=>boot());
 </script>
+<script src="/static/gw2.js"></script>
 </body>
 </html>
