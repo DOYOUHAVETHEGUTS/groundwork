@@ -65,3 +65,31 @@ open(os.path.join(os.path.dirname(DB := store.DB_PATH), name), "wb").write(data)
 print(f"\nExport OK: {name} ({len(data)} bytes, {ctype})")
 print("Levelpath payload keys:", list(exporter.levelpath_payload(strong).keys()))
 print("Requests in DB:", [(r['id'], r['score'], r['status']) for r in store.list_all()])
+
+# ---------------------------------------------------------------- guided improvement
+import coach, notify
+print("\nGuided improvement (demo scenarios, rules engine):")
+expect = {"pass": "passed", "second": "passed", "escalate": "escalated"}
+for scn, want in expect.items():
+    meta = {"title": f"selftest {scn}", "request_type": "Vehicle / GSE", "department": "Cargo Facilities"}
+    r = store.blank(meta)
+    r.update(demo=True, demo_scenario=scn, demo_rules_only=True, original_description=coach.DEMO_TEXT)
+    r.update({k: v for k, v in agents.structure(coach.DEMO_TEXT, meta, force_rules=True).items() if k in r})
+    q = agents.qualify(r)
+    r["qualification"], r["score"], r["status"] = q, q["overall"], q["status"]
+    path, asked = [q["overall"]], []
+    for _ in range(coach.MAX_ROUNDS):
+        r = coach.start_round(r)
+        rnd = r["coaching"]["rounds"][-1]
+        assert len(rnd["questions"]) == coach.PER_ROUND, "each round must ask 10 questions"
+        ids = [x["id"] for x in rnd["questions"]]
+        assert not set(ids) & set(asked), "round 2 must not repeat round 1"
+        asked += ids
+        r = coach.submit_answers(r, coach.demo_answers(r), notifier=notify.escalate)
+        path.append(r["coaching"]["rounds"][-1]["score_after"])
+        if r["coaching"]["rounds"][-1]["passed"]:
+            break
+    got = r["coaching"]["status"]
+    assert got == want, f"{scn}: expected {want}, got {got}"
+    print(f"  {scn:<9} {' -> '.join(map(str, path)):<14} {got}")
+    store.save(r)

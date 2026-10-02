@@ -3,7 +3,7 @@
 Turns a plain-language request into a five-point justification, scores it against the
 standard that gets requests approved, and exports a Word doc + JSON payload for Levelpath.
 
-Python backend, one HTML file front end, **no third-party packages required**.
+Python backend, one HTML file front end, **no third-party packages required** (python-docx optional).
 
 ## Run locally (trial)
 
@@ -115,6 +115,57 @@ browser** — `/api/settings` returns it redacted. Use **Test connection** befor
 `rubric.py`, and the header pill shows `rules mode`. Tick **Offline mode** to force that
 permanently — useful before the API is approved.
 
+## Guided improvement — score → 10 questions → re-score → Finance
+
+After a request is scored, Groundwork coaches it to a deliverable instead of just grading it:
+
+1. **Round 1 — 10 guided questions.** Chosen by *points at stake* (category weight × how far
+   below 100 it sits), so the weakest, heaviest sections get the most questions. Every question
+   asks for something a business unit actually knows — counts, dates, quotes, hours, headcount,
+   options considered. Skipping is fine.
+2. **Merge + re-score.** Answers are written into the right sections of the draft (model prose
+   when configured; labeled rules merge otherwise). Vague answers ("not sure", "hard to say")
+   are recognized and don't count.
+3. **Groundwork does the finance math.** Business units rarely know their MIRR, so questions
+   ask for the *inputs* — one-time cost, annual benefit, recurring cost, useful life — and
+   Groundwork derives **NPV @ 20%, MIRR and payback**, tagged `Groundwork calc — confirm with Finance`.
+4. **Results screen** shows before → after, category movement, and the **largest edits ranked by
+   points gained**. Points are attributed by re-scoring with each field reverted, so the ranking
+   reflects what actually moved the score — not what was longest.
+5. **Second chance.** Below the bar after round 1 → 10 *different* questions (no repeats by ID or
+   wording) aimed at what's still missing.
+6. **Escalation.** Still below the bar after round 2 → the requester's finance partner is alerted
+   with the score path, open items, and the specific questions the requester couldn't answer.
+
+Threshold is **Settings → Ready threshold** (default 75). Two rounds maximum per request.
+
+### Finance escalation delivery
+
+| Method | Works on Render free? | Setup |
+| --- | --- | --- |
+| `log` (default) | ✅ | Nothing. Alert is stored on the request with a one-click email link. |
+| `webhook` | ✅ | `GW_ALERT_WEBHOOK_URL` — Groundwork POSTs JSON (`subject`, `body`, `to_email`, `score`, …). A Power Automate *When an HTTP request is received* flow can send it as an Outlook email or Teams post; Slack incoming webhooks read the `text` field. |
+| `smtp` | ❌ free tier blocks ports 25/465/587 | `GW_SMTP_HOST/PORT/USER/PASSWORD/FROM`. Use on a paid instance or locally. |
+
+The finance partner is taken from the request's own field (asked on the New Request screen),
+falling back to `GW_FINANCE_NAME` / `GW_FINANCE_EMAIL`. **Settings → Send a test alert** verifies the channel.
+
+### Built-in demo
+
+Home → **Watch a guided demo** loads a weak real request (the BOS van, scores 40) and lets you
+pick an ending:
+
+| Scenario | Path |
+| --- | --- |
+| Passes after round 1 | 40 → 91 |
+| Needs the second chance | 40 → 72 → 95 |
+| Escalates to Finance | 40 → 51 → 59 → finance alerted |
+
+On each question screen, **Autofill demo answers** plays the requester. Demos run on the free
+rules engine by default (tick *Use the live AI model* to see tailored questions), are labeled
+DEMO, and **never send a real alert** — the escalation is built and shown, marked simulated.
+`python selftest.py` asserts all three paths.
+
 ## How it scores
 
 Weights calibrated against the two attached examples — the approved Parcel Product 5-Point
@@ -142,6 +193,8 @@ python selftest.py     # re-runs both examples
 ```
 app.py         stdlib HTTP server + routes
 agents.py      structuring & qualification agents (model, with rules fallback)
+coach.py       guided rounds: question bank + selection, merge, finance calc, edit ranking, demo
+notify.py      finance escalation: webhook / SMTP / log
 rubric.py      five-point schema, weights, deterministic scorer
 llm.py         provider-agnostic chat client (urllib only)
 config.py      settings load/save, env overrides, secret redaction
@@ -164,6 +217,12 @@ data/          settings.json + groundwork.db (gitignored)
 | GET | `/api/requests/{id}` | fetch one |
 | POST | `/api/handoff` | gate on threshold, return Levelpath payload |
 | GET | `/api/export?id=&format=docx\|json\|md` | download |
+| POST | `/api/coach/questions` | open the next round (10 questions) |
+| POST | `/api/coach/answers` | `{id, answers:{qid:text}}` → merge, re-score, edits; escalates after round 2 |
+| POST | `/api/coach/escalate` | resend the finance alert |
+| POST | `/api/demo/start` | `{scenario: pass\|second\|escalate, use_model}` |
+| POST | `/api/demo/answers` | scripted answers for the open round |
+| POST | `/api/settings/test-alert` | test the escalation channel |
 
 `levelpath_payload()` in `exporter.py` is the single integration point — when the Levelpath
 API is available, POST that dict instead of downloading it.

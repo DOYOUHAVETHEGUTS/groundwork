@@ -80,9 +80,11 @@ async function signin(e){e.preventDefault();
 </script></body></html>"""
 
 import agents
+import coach
 import config
 import exporter
 import llm
+import notify
 import rubric
 import store
 
@@ -179,6 +181,9 @@ class Handler(BaseHTTPRequestHandler):
                 "categories": [{"name": n, "weight": w, "note": d} for n, w, d in rubric.CATEGORIES],
                 "llm_ready": llm.available(),
                 "auth_required": AUTH_ON,
+                "threshold": int(config.load().get("min_score_to_advance", 75)),
+                "max_rounds": coach.MAX_ROUNDS,
+                "demo_scenarios": [{"key": k, **v} for k, v in coach.DEMO_SCENARIOS.items()],
             })
         if p == "/api/requests":
             return self._json({"items": store.list_all()})
@@ -235,6 +240,8 @@ class Handler(BaseHTTPRequestHandler):
                 "request_type": b.get("request_type") or "",
                 "department": b.get("department") or cfg.get("default_department"),
                 "requester": b.get("requester") or "",
+                "finance_contact_name": (b.get("finance_contact_name") or "").strip(),
+                "finance_contact_email": (b.get("finance_contact_email") or "").strip(),
             }
             req = store.blank(meta)
             req["original_description"] = text
@@ -261,6 +268,46 @@ class Handler(BaseHTTPRequestHandler):
             req = store.get(b.get("id")) if b.get("id") else store.blank()
             req = req or store.blank()
             req.update({k: v for k, v in b.items() if k in req})
+            return self._json(store.save(req))
+
+        if p == "/api/settings/test-alert":
+            return self._json(notify.send_test())
+
+        # ---- guided improvement loop ----
+        if p in ("/api/coach/questions", "/api/coach/answers", "/api/coach/escalate",
+                 "/api/demo/answers"):
+            r = store.get(b.get("id"))
+            if not r:
+                return self._json({"error": "not found"}, 404)
+            try:
+                if p == "/api/coach/questions":
+                    r = coach.start_round(r)
+                elif p == "/api/coach/answers":
+                    r = coach.submit_answers(r, b.get("answers") or {}, notifier=notify.escalate)
+                elif p == "/api/coach/escalate":
+                    r.setdefault("coaching", {"rounds": []})["escalation"] = notify.escalate(r)
+                else:
+                    return self._json({"answers": coach.demo_answers(r)})
+            except coach.CoachError as e:
+                return self._json({"error": str(e)}, 400)
+            return self._json(store.save(r))
+
+        if p == "/api/demo/start":
+            scenario = b.get("scenario") if b.get("scenario") in coach.DEMO_SCENARIOS else "pass"
+            rules_only = not (b.get("use_model") and llm.available())
+            meta = {"title": f"DEMO · BOS van replacement ({coach.DEMO_SCENARIOS[scenario]['label']})",
+                    "request_type": "Vehicle / GSE", "department": "Cargo Facilities",
+                    "requester": "Demo requester",
+                    "finance_contact_name": "Demo Finance Partner",
+                    "finance_contact_email": "finance.partner@example.com"}
+            req = store.blank(meta)
+            req.update({"demo": True, "demo_scenario": scenario, "demo_rules_only": rules_only,
+                        "original_description": coach.DEMO_TEXT})
+            d = agents.structure(coach.DEMO_TEXT, meta, force_rules=rules_only)
+            req.update({k: v for k, v in d.items()
+                        if k in req or k in ("engine", "engine_error", "missing_information")})
+            q = agents.qualify(req)
+            req["qualification"], req["score"], req["status"] = q, q["overall"], q["status"]
             return self._json(store.save(req))
 
         if p == "/api/handoff":

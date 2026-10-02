@@ -37,7 +37,53 @@ def levelpath_payload(req: dict) -> dict:
             "engine": q.get("engine"),
         },
         "original_description": req.get("original_description", ""),
+        "guided_improvement": coaching_summary(req),
     }
+
+
+def coaching_summary(req: dict):
+    co = req.get("coaching") or {}
+    rounds = [r for r in co.get("rounds") or [] if r.get("answered")]
+    if not rounds:
+        return None
+    esc = co.get("escalation") or {}
+    return {
+        "status": co.get("status"),
+        "original_score": co.get("original_score"),
+        "rounds": [{
+            "round": r["round"], "score_before": r.get("score_before"),
+            "score_after": r.get("score_after"), "passed": r.get("passed"),
+            "questions": [{"question": q["question"], "field": q["field"],
+                           "answer": (r.get("answers") or {}).get(q["id"], "")}
+                          for q in r.get("questions", [])],
+            "largest_edits": [{"field": e["label"], "points": e["points"],
+                               "calculated": e.get("calculated", False)}
+                              for e in (r.get("edits") or [])[:5]],
+        } for r in rounds],
+        "escalation": ({"to": esc.get("to_email"), "method": esc.get("method"),
+                        "delivered": esc.get("delivered"), "simulated": esc.get("simulated")}
+                       if esc else None),
+    }
+
+
+def _coaching_lines(req):
+    cs = coaching_summary(req)
+    if not cs:
+        return []
+    path = " → ".join([str(cs["original_score"])] + [str(r["score_after"]) for r in cs["rounds"]])
+    out = [f"Score path through guided questions: {path}."]
+    for r in cs["rounds"]:
+        n = sum(1 for q in r["questions"] if q["answer"])
+        top = ", ".join(f"{e['field']} (+{e['points']})" for e in r["largest_edits"][:3] if e["points"] > 0)
+        out.append(f"Round {r['round']}: {n} of {len(r['questions'])} answered, "
+                   f"{r['score_before']} → {r['score_after']}" + (f"; largest gains: {top}." if top else "."))
+    if cs["escalation"]:
+        out.append(f"Escalated to finance partner {cs['escalation']['to'] or '(not set)'} "
+                   f"via {cs['escalation']['method']}.")
+    if "Groundwork calc" in " ".join(str(req.get(k, "")) for k in ("npv", "mirr", "payback_months")):
+        out.append("NPV, MIRR and/or payback were calculated by Groundwork from the stated "
+                   "cost and benefit and should be confirmed by Finance.")
+    return out
 
 
 def to_markdown(req: dict) -> str:
@@ -66,6 +112,9 @@ def to_markdown(req: dict) -> str:
               f"({q.get('status')}) — engine: {q.get('engine')}*"]
         if q.get("missing"):
             L += ["", "**Open items before submission:**"] + [f"- {m}" for m in q["missing"]]
+    cl = _coaching_lines(req)
+    if cl:
+        L += ["", "### Guided improvement"] + [f"- {x}" for x in cl]
     return "\n".join(L)
 
 
@@ -123,6 +172,11 @@ def to_docx_bytes(req: dict):
         doc.add_paragraph(f"Score: {q.get('overall')} / 100 ({q.get('status')}) — engine: {q.get('engine')}")
         for m in q.get("missing") or []:
             doc.add_paragraph(m, style="List Bullet")
+    cl = _coaching_lines(req)
+    if cl:
+        doc.add_heading("Guided Improvement", level=2)
+        for x in cl:
+            doc.add_paragraph(x, style="List Bullet")
 
     buf = io.BytesIO()
     doc.save(buf)

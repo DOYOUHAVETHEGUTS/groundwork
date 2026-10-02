@@ -69,11 +69,11 @@ def _clean(d, keys):
 
 
 # ------------------------------------------------------------ structuring
-def structure(text: str, meta: dict) -> dict:
+def structure(text: str, meta: dict, force_rules: bool = False) -> dict:
     keys = [k for k in rubric.BLANK_REQUEST
             if k not in ("title", "request_type", "department", "requester",
                          "original_description", "missing_information")]
-    if llm.available():
+    if llm.available() and not force_rules:
         try:
             user = json.dumps({
                 "title": meta.get("title", ""),
@@ -142,9 +142,17 @@ def _fallback_structure(text: str) -> dict:
 
 
 # ------------------------------------------------------------ qualification
+def use_model(req: dict) -> bool:
+    """Demo requests can pin themselves to the free, deterministic rules engine."""
+    return llm.available() and not req.get("demo_rules_only")
+
+
 def qualify(req: dict) -> dict:
     base = rubric.score_request(req)
-    if not llm.available():
+    threshold = int(config.load().get("min_score_to_advance", 75))
+    o = base["overall"]   # keep rules status in step with the configured threshold
+    base["status"] = "ready" if o >= threshold else ("review" if o >= 55 else "need")
+    if not use_model(req):
         return base
     try:
         payload = {k: req.get(k, "") for k in rubric.BLANK_REQUEST if k != "missing_information"}

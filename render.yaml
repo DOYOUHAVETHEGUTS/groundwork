@@ -31,6 +31,18 @@ services:
         value: https://api.openai.com/v1
       - key: GW_API_KEY
         sync: false                # <-- enter the secret in the dashboard
+      # ---- Finance escalation (after 2 guided rounds below the bar) ----
+      # Free Render instances block outbound SMTP, so use "webhook" here
+      # (e.g. a Power Automate HTTP-trigger flow that sends an Outlook email),
+      # or "log" to record alerts in-app with a one-click email link.
+      - key: GW_ALERT_METHOD
+        value: log                 # log | webhook | smtp
+      - key: GW_FINANCE_NAME
+        sync: false
+      - key: GW_FINANCE_EMAIL
+        sync: false
+      - key: GW_ALERT_WEBHOOK_URL
+        sync: false                # secret — the flow URL embeds its own key
       # Azure-only extras (uncomment if provider is azure_openai):
       # - key: GW_API_VERSION
       #   value: "2024-10-21"

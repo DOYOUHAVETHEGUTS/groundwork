@@ -24,6 +24,19 @@ def _post(url, payload, headers, timeout):
         raise LLMError(str(e))
 
 
+def _looks_like_deprecated_sampling_param(err: "LLMError") -> bool:
+    """True for a 400 that's specifically about temperature/top_p/top_k being
+    unsupported on a given model — newer Claude and OpenAI reasoning models reject
+    a non-default value outright rather than just ignoring it. Anything else
+    (auth, rate limit, timeout, real validation errors) is left alone."""
+    msg = str(err).lower()
+    if "400" not in msg:
+        return False
+    mentions_param = any(p in msg for p in ("temperature", "top_p", "top_k"))
+    mentions_reason = any(w in msg for w in ("deprecated", "not support", "unsupported"))
+    return mentions_param and mentions_reason
+
+
 def available():
     cfg = config.load()
     return bool(cfg.get("api_key")) and not cfg.get("offline_mode")
@@ -56,7 +69,16 @@ def chat(system: str, user: str, json_mode: bool = True) -> str:
             "system": system,
             "messages": [{"role": "user", "content": user}],
         }
-        data = _post(url, payload, headers, timeout)
+        try:
+            data = _post(url, payload, headers, timeout)
+        except LLMError as e:
+            # Models newer than Claude Opus 4.6 reject any temperature other than
+            # 1.0 with a 400. Retry once with it omitted (API defaults to 1.0)
+            # instead of forcing the caller to know which generation they're on.
+            if not _looks_like_deprecated_sampling_param(e):
+                raise
+            payload.pop("temperature", None)
+            data = _post(url, payload, headers, timeout)
         return "".join(b.get("text", "") for b in data.get("content", []))
 
     # OpenAI-compatible (openai, azure_openai, custom gateways)
@@ -81,7 +103,15 @@ def chat(system: str, user: str, json_mode: bool = True) -> str:
         url = (base or "https://api.openai.com/v1") + "/chat/completions"
         headers = {"content-type": "application/json", "authorization": f"Bearer {key}"}
 
-    data = _post(url, payload, headers, timeout)
+    try:
+        data = _post(url, payload, headers, timeout)
+    except LLMError as e:
+        # Same deal on the OpenAI-compatible side — some reasoning models (o-series
+        # and newer) reject a custom temperature the same way.
+        if not _looks_like_deprecated_sampling_param(e):
+            raise
+        payload.pop("temperature", None)
+        data = _post(url, payload, headers, timeout)
     try:
         return data["choices"][0]["message"]["content"]
     except Exception:

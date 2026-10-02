@@ -115,7 +115,8 @@ def score_request(req: dict) -> dict:
     s = min(100, 12 + len(fin) * 13)
     for k, label in FINANCIAL_FIELDS:
         if not _f(req.get(k)):
-            missing.append(f"Add {label.lower()}")
+            nice = label if label[:2].isupper() or label[:1].isdigit() else label[0].lower() + label[1:]
+            missing.append(f"Add {nice}")
     if {"npv", "payback_months"} <= set(fin):
         strong.append("NPV and payback are stated, not just a purchase price")
     cats.append(["Financial Case", s])
